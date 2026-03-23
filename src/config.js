@@ -1,22 +1,21 @@
-// src/config.js
 const GAME_CONFIG = {
     width: 720,
     height: 1280,
-    backgroundColor: 0x1a1a2e,  // ✅ Было: '#1a1a2e'
+    backgroundColor: '#a9ecac',
     paddle: {
-        width: 120,
-        height: 20,
+        width: 122,
+        height: 34,
         speed: 800,
-        color: 0x00d9ff  // ✅ Было: '#00d9ff'
+        color: '#00d9ff'
     },
     ball: {
-        radius: 10,
-        speed: 500,
-        color: 0xff6b6b  // ✅ Было: '#ff6b6b'
+        radius: 15,
+        speed: 1000,
+        color: '#ff6b6b'
     },
     brick: {
         width: 60,
-        height: 25,
+        height: 30,
         gap: 5
     }
 };
