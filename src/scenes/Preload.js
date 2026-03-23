@@ -38,8 +38,10 @@ class Preload extends Phaser.Scene {
         this.load.setPath('assets/audio/');
         this.load.audio('hit', 'hit.mp3');
         this.load.audio('bounce', 'bounce.mp3');
+        this.load.audio('knock', 'knock.mp3');
         this.load.audio('win', 'win.mp3');
         this.load.audio('lose', 'lose.mp3');
+        this.load.audio('backgroundMusic', 'backgroundMusic.mp3');
     }
 
     create() {

@@ -1,11 +1,12 @@
 class Menu extends Phaser.Scene {
     constructor() {
         super('Menu');
+        this.musicEnabled = true;
+        this.soundEnabled = true; 
     }
 
     create() {
         const { width, height } = this.game.config;
-
         // Заголовок
         this.add.text(width / 2, height / 3, 'ARKANOID', {
             font: '60px Arial',
@@ -41,5 +42,7 @@ class Menu extends Phaser.Scene {
             fontFamily: 'sans-serif',
             color: '#888888'
         }).setOrigin(0.5);
+
+        playBackgroundMusic(this, 'backgroundMusic', { volume: 0.3 });
     }
 }

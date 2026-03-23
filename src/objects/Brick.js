@@ -2,23 +2,22 @@ class Brick {
     constructor(scene, x, y, width, height, textureKey, points = 10) {
         this.scene = scene;
         this.points = points;
-        this.hp = 5;
-        
+        this.hp = 2;
+
         // Визуал
         this.sprite = scene
             .add.image(x, y, textureKey)
-            .setDisplaySize(width, height)
             .setOrigin(0, 0);
-        
+
         // Физика
         scene.physics.add.existing(this.sprite);
         this.body = this.sprite.body;
-        
-        this.body.setImmovable(true);       
-        this.body.allowGravity = false;     
-        this.body.setEnable(true);          
-        this.body.moves = false;            
-        
+
+        this.body.setImmovable(true);
+        this.body.allowGravity = false;
+        this.body.setEnable(true);
+        this.body.checkCollision.none = false; // Включаем коллизии!
+
         // Ссылки для удобного доступа из коллизий
         this.sprite.points = points;
         this.sprite._brick = this;

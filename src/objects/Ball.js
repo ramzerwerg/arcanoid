@@ -2,27 +2,32 @@ class Ball {
     constructor(scene, x, y) {
         this.scene = scene;
         
-        const diameter = GAME_CONFIG.ball.radius * 2;
-
-        // Создаём визуальное представление (спрайт из ассета)
-        this.sprite = scene
-            .add.image(x, y, 'ball')
-            .setDisplaySize(diameter, diameter)
+        const radius = GAME_CONFIG.ball.radius; 
+        const diameter = radius * 2;
+        
+        // 1. Создаём спрайт
+        this.sprite = scene.add.image(x, y, 'ball')
             .setOrigin(0.5, 0.5);
         
-        // Добавляем физику
+        // 2. Вычисляем и применяем масштаб
+        // const originalSize = this.sprite.texture.source[0].height;
+        // const scale = diameter / originalSize;
+        // this.sprite.setScale(scale);
+        
+        // 3. Добавляем физику ПОСЛЕ масштабирования
         scene.physics.add.existing(this.sprite);
         this.body = this.sprite.body;
         
-        // Настраиваем физику
+        // 4. Настройки физики
         this.body.setCollideWorldBounds(true);
         this.body.setBounce(1);
         this.body.setAllowGravity(false);
-
-        // Используем "круглую" форму для более приятного отскока.
-        this.body.setCircle(diameter);
         
-        this.speed = GAME_CONFIG.ball.speed;
+        // 5. компенсируем масштаб в setCircle
+        this.body.setCircle(radius);
+        this.body.setOffset(0, 0);
+        
+        this.speed = GAME_CONFIG.ball.speed; 
         this.isLaunched = false;
     }
 
@@ -46,7 +51,7 @@ class Ball {
         // Если мяч не запущен, следует за ракеткой
         if (!this.isLaunched && this.scene.paddle) {
             this.x = this.scene.paddle.x;
-            this.y = this.scene.paddle.y - 30;
+            this.y = this.scene.paddle.y - 40;
         }
 
         // Проверка падения мяча
