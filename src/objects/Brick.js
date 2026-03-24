@@ -3,6 +3,7 @@ class Brick {
         this.scene = scene;
         this.points = points;
         this.hp = 2;
+        this.bonusChance = 0.25; // 7% шанс выпадения бонуса
 
         // Визуал
         this.sprite = scene
@@ -21,6 +22,15 @@ class Brick {
         // Ссылки для удобного доступа из коллизий
         this.sprite.points = points;
         this.sprite._brick = this;
+    }
+
+    shouldDropBonus() {
+        return Math.random() < this.bonusChance;
+    }
+
+    getBonusType() {
+        const types = ['multiball', 'expand', 'speed'];
+        return types[Math.floor(Math.random() * types.length)];
     }
 
 

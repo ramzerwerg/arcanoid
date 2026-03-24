@@ -23,7 +23,7 @@ class Menu extends Phaser.Scene {
         }).setOrigin(0.5).setInteractive();
 
         startButton.on('pointerdown', () => {
-            this.scene.start('Game', { level: 0 });
+            this.scene.start('Game', { level: 3 });
         });
 
         // Анимация кнопки

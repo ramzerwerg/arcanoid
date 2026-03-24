@@ -34,14 +34,16 @@ class Preload extends Phaser.Scene {
         this.load.image('brick1', 'brick1.png');
         this.load.image('brick2', 'brick2.png');
         this.load.image('brick3', 'brick3.png');
-
-        this.load.setPath('assets/audio/');
+        this.load.image('background', 'assets/bg.png');
+        
+         this.load.setPath('assets/audio/');
         this.load.audio('hit', 'hit.mp3');
         this.load.audio('bounce', 'bounce.mp3');
         this.load.audio('knock', 'knock.mp3');
         this.load.audio('win', 'win.mp3');
         this.load.audio('lose', 'lose.mp3');
         this.load.audio('backgroundMusic', 'backgroundMusic.mp3');
+        this.load.audio('bonus', 'bonus.mp3');
     }
 
     create() {

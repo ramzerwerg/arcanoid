@@ -17,22 +17,22 @@ class Game extends Phaser.Scene {
         const { width, height } = this.game.config;
         this._cachedSpeed = GAME_CONFIG.ball.speed; // Кэш скорости
 
-        this._createTopMenu(width, height);
-        this._setupInput();
-        this._createGameObjects(width, height);
-        this._createBricks();
-        this._setupCollisions();
-        this._createUI(width, height);
-        this._setupParticles();
-        this._setupPause(width);
-        this._animateIntro();
+        this._createTopMenu(width, height);     // Создание меню сверху
+        this._setupInput();                     // Назначение унопок управления
+        this._createGameObjects(width, height); // Создание гровых объектов (Платформа, мячи, бонусы)
+        this._createBricks();                   // Генерация кирпичей на уровне
+        this._setupCollisions();                // Установка коллизий
+        this._createUI(width, height);          // Создание кнопок для меню паузы
+        this._setupParticles();                 // Установка частиц при взрыве кирпичика
+        this._setupPause(width);                // Создание паузы
+        this._animateIntro();                   // Анимация выдвижения паузы
         
         // Debounce для коллизий с кирпичами (в мс)
         this.brickCollisionCooldown = 1;
         this.lastBrickCollisionTime = 0;
     }
 
-    // === 🔝 Верхнее меню ===
+    // === Верхнее меню ===
     _createTopMenu(width, height) {
         const menuHeight = height < UI.MOBILE_BREAKPOINT 
             ? UI.MENU_HEIGHT_MOBILE 
@@ -53,7 +53,7 @@ class Game extends Phaser.Scene {
         this.topMenuBoundary = boundary;
     }
 
-    // === 🎮 Управление ===
+    // === Управление ===
     _setupInput() {
         this.cursors = this.input.keyboard?.createCursorKeys();
         
@@ -66,16 +66,19 @@ class Game extends Phaser.Scene {
         });
     }
 
-    // === 🎱 Игровые объекты ===
+    // === Игровые объекты ===
     _createGameObjects(width, height) {
         this.paddle = new Paddle(this, width / 2, height - UI.PADDLE_Y_OFFSET);
         this.ball = new Ball(this, width / 2, height - UI.PADDLE_Y_OFFSET - UI.BALL_Y_OFFSET);
+        this.balls = [this.ball]; // Массив всех мячей на поле
+        this.bonuses = []; // Массив активных бонусов
     }
 
-    // === 🧱 Кирпичи ===
+    // === Кирпичи ===
     _createBricks() {
         this.bricks = this.physics.add.group();
-        
+        this.bonusGroup = this.physics.add.group();
+
         const levelData = LEVELS[this.currentLevel];
         if (!levelData) {
             this._endLevel(true);
@@ -105,17 +108,29 @@ class Game extends Phaser.Scene {
         });
     }
 
-    // === ⚡ Коллизии ===
+    // === Коллизии ===
     _setupCollisions() {
         this.physics.add.collider(this.ball.sprite, this.paddle.sprite, this.handlePaddleHit, null, this);
-        
+
         // Используем overlap для обработки отскока
         this.physics.add.overlap(this.ball.sprite, this.bricks, this.handleBrickCollision, null, this);
-        
-        this.physics.add.collider(this.ball.sprite, this.topMenuBoundary);
+
+        // Столкновение с верхним меню
+        this.physics.add.collider(this.ball.sprite, this.topMenuBoundary, () => {
+            this.sound?.play('bounce', { volume: 0.2 });
+        });
+
+        // Столкновение с границами поля
+        this.ball.sprite.body.onWorldBounds = true;
+        this.physics.world.on('worldbounds', () => {
+            this.sound?.play('bounce', { volume: 0.2 });
+        });
+
+        // Коллизия бонусов с paddle
+        this.physics.add.overlap(this.paddle.sprite, this.bonusGroup, this._handleBonusCollection, null, this);
     }
 
-    // === ✨ Частицы ===
+    // === Частицы ===
     _setupParticles() {
         try {
             this.particles = this.add.particles(0, 0, 'ball', {
@@ -129,7 +144,7 @@ class Game extends Phaser.Scene {
         }
     }
 
-    // === 📊 UI ===
+    // === UI ===
     _createUI(width, height) {
         const style = { font: UI.TEXT_FONT, color: UI.TEXT_COLOR };
         
@@ -147,7 +162,7 @@ class Game extends Phaser.Scene {
         }).setOrigin(0.5);
     }
 
-    // === ⏸ Пауза ===
+    // === Пауза ===
     _setupPause(width) {
         this.pauseButton = this.add.text(width - 20, 5, '⏸', {
             font: '28px Arial',
@@ -168,7 +183,7 @@ class Game extends Phaser.Scene {
         this.musicEnabled = true;
     }
 
-    // === 🎬 Анимация появления ===
+    // === Анимация появления ===
     _animateIntro() {
         // Меню выезжает
         this.topMenuBg.setY(-this.menuHeight);
@@ -201,7 +216,7 @@ class Game extends Phaser.Scene {
         button.setStyle({ backgroundColor: color });
     }
 
-    // === 🔊 Звуки ===
+    // === Звуки ===
     playSound(key, { volume = 0.3, cooldownMs = 60 } = {}) {
         if (!this.soundEnabled || !this.sound) return;
         
@@ -212,7 +227,7 @@ class Game extends Phaser.Scene {
         this.sound.play(key, { volume });
     }
 
-    // === 🎱 Обработка ударов ===
+    // === Обработка ударов ===
     handlePaddleHit(ballSprite, paddleSprite) {
         const hitPoint = ballSprite.x - paddleSprite.x;
         const normalizedHit = Phaser.Math.Clamp(hitPoint / (paddleSprite.width / 2), -1, 1);
@@ -228,7 +243,7 @@ class Game extends Phaser.Scene {
         const jitter = Phaser.Math.FloatBetween(-0.05, 0.05) * speed;
         ballSprite.body.setVelocity(newVx + jitter, newVy);
         
-        this.playSound('hit', { volume: 0.3, cooldownMs: 40 });
+        this.playSound('bounce', { volume: 0.3, cooldownMs: 40 });
     }
 
     handleBrickCollision(ballSprite, brickSprite) {
@@ -248,14 +263,19 @@ class Game extends Phaser.Scene {
         this.bounceOffBrick(ballSprite, brickSprite);
 
         if (!brick.hit()) {
-            this.sound?.play('hit', { volume: 0.2 });
+            this.sound?.play('bounce', { volume: 0.2 });
             return;
+        }
+
+        // === ПРОВЕРЯЕМ ВЫПАДЕНИЕ БОНУСА ===
+        if (brick.shouldDropBonus()) {
+            this._spawnBonus(brickSprite.x + brickSprite.displayWidth / 2, brickSprite.y + brickSprite.displayHeight / 2, brick.getBonusType());
         }
 
         // Эффекты
         this.score += brick.points;
         this.scoreText.setText(`Счет: ${this.score}`);
-        this.sound?.play('knock', { volume: 0.2 });
+        this.sound?.play('hit', { volume: 0.2 });
         this.particles?.emitParticleAt(brickSprite.x, brickSprite.y, 10);
 
         // Безопасное удаление кирпича
@@ -297,8 +317,7 @@ class Game extends Phaser.Scene {
         // 1. Сначала запрещаем новые коллизии, но оставляем тело активным
         if (brickSprite?.body) {
             brickSprite.body.checkCollision.none = true;  // Игнорировать новые столкновения
-            brickSprite.body.immovable = true;            // На всякий случай
-            // ❌ НЕ делаем enable = false сразу!
+            brickSprite.body.immovable = true;
         }
         
         // 2. Скрываем визуально
@@ -306,40 +325,98 @@ class Game extends Phaser.Scene {
         brickSprite?.setActive(false);
         
         // 3. Полное удаление с задержкой (1-2 кадра достаточно)
-        this.time.delayedCall(1, () => {  // 1 = 1 кадр, не 1мс!
+        this.time.delayedCall(1, () => { 
             if (brickSprite?.body) {
-                brickSprite.body.enable = false;  // Теперь можно отключить
+                brickSprite.body.enable = false;
             }
             brickSprite?.destroy();  // Удаляем из памяти
         });
     }
-    
-    // === ⚙️ Поддержание скорости (опционально) ===
-    keepBallMoving() {
-        const ball = this.ball;
-        if (!ball?.isLaunched) return;
-        
-        const body = ball.sprite?.body;
-        if (!body) return;
 
-        const speed = this._cachedSpeed;
-        const currSpeed = Math.hypot(body.velocity.x, body.velocity.y);
-        
-        // Только экстренная коррекция (если скорость упала ниже 90%)
-        if (currSpeed > 0 && currSpeed < speed * 0.9) {
-            const k = speed / currSpeed;
-            body.setVelocity(body.velocity.x * k, body.velocity.y * k);
+    // === Бонусы ===
+    _spawnBonus(x, y, type) {
+        // Задаём вектор падения: немного вниз и случайно влево/вправо
+        const velocityX = (Math.random() - 0.5) * 100; // Случайное отклонение по X
+        const velocityY = 150 + Math.random() * 50; // Скорость падения вниз
+        const bonus = new Bonus(this, x, y, type, velocityX, velocityY);
+        this.bonuses.push(bonus);
+        this.bonusGroup.add(bonus.container);
+    }
+
+    _handleBonusCollection(paddleSprite, bonusContainer) {
+        const bonus = bonusContainer._bonus;
+        if (bonus && bonus.isActive) {
+            bonus.activate();
+            this.sound?.play('bonus', { volume: 0.2 });
+            // Удаляем из массива
+            this.bonuses = this.bonuses.filter(b => b !== bonus);
+            // Группа будет обновлена в _updateBonuses
         }
     }
 
-    // === 💔 Потеря жизни ===
+    _updateBonuses() {
+        const height = this.game.config.height;
+
+        // Обновляем каждый бонус
+        for (let i = this.bonuses.length - 1; i >= 0; i--) {
+            const bonus = this.bonuses[i];
+
+            bonus.body.setVelocityY(200)
+            // Если бонус не активен (уже подобран) - удаляем
+            if (!bonus.isActive) {
+                if (bonus.container && bonus.container.active) {
+                    bonus.container.destroy();
+                }
+                this.bonuses.splice(i, 1);
+                continue;
+            }
+
+            // Если бонус упал ниже экрана - удаляем без активации
+            if (bonus.y > height) {
+                bonus.isActive = false;
+                if (bonus.container && bonus.container.active) {
+                    bonus.container.destroy();
+                }
+                this.bonuses.splice(i, 1);
+            }
+        }
+
+        // Очищаем группу бонусов от неактивных
+        this.bonusGroup.children.iterate((child) => {
+            if (child && !child.active) {
+                this.bonusGroup.remove(child, true);
+            }
+        });
+    }
+    
+    // === Поддержание скорости ===
+    keepBallMoving() {
+        // Поддерживаем скорость для всех мячей
+        this.balls.forEach(ball => {
+            if (!ball?.isLaunched) return;
+
+            const body = ball.sprite?.body;
+            if (!body) return;
+
+            const speed = this._cachedSpeed;
+            const currSpeed = Math.hypot(body.velocity.x, body.velocity.y);
+
+            // Только экстренная коррекция
+            if (currSpeed > 0 && currSpeed < speed * 0.9) {
+                const k = speed / currSpeed;
+                body.setVelocity(body.velocity.x * k, body.velocity.y * k);
+            }
+        });
+    }
+
+    // === Потеря жизни ===
     loseLife() {
         if (this._gameEndTriggered) return;
-        
+
         this.lives--;
         this.livesText.setText(`Жизни: ${this.lives}`);
         this.playSound('lose', { volume: 0.3, cooldownMs: 250 });
-        
+
         if (this.lives <= 0) {
             this._endLevel(false);
         } else {
@@ -347,12 +424,45 @@ class Game extends Phaser.Scene {
         }
     }
 
+    // === Потеря мяча ===
+    ballLost(lostBall) {
+        if (this._gameEndTriggered) return;
+
+        // Если мяч только один - теряем жизнь
+        if (this.balls.length <= 1) {
+            // Не уничтожаем мяч здесь, это сделает _resetBall()
+            this.loseLife();
+            return;
+        }
+
+        // Если мячей несколько - удаляем только упавший
+        const index = this.balls.indexOf(lostBall);
+        if (index > -1) {
+            this.balls.splice(index, 1);
+        }
+        lostBall.sprite.destroy();
+
+        // Воспроизводим звук
+        this.playSound('lose', { volume: 0.3, cooldownMs: 250 });
+    }
+
     _resetBall() {
+        // Сбрасываем только основной мяч, дополнительные удаляем
+        this.balls.forEach((ball, index) => {
+            if (index > 0 && ball !== this.ball) {
+                // Удаляем дополнительные мячи
+                ball.sprite?.destroy();
+            }
+        });
+        
+        // Сбрасываем основной мяч
         this.ball?.reset(this.paddle.x, this.paddle.y - 45);
+        this.balls = [this.ball];
+        
         if (!this.launchText) {
             this.launchText = this.add.text(
-                this.game.config.width / 2, 
-                this.game.config.height / 2, 
+                this.game.config.width / 2,
+                this.game.config.height / 2,
                 'Нажми для запуска', {
                     font: UI.LAUNCH_TEXT_SIZE,
                     color: '#00d9ff'
@@ -361,7 +471,7 @@ class Game extends Phaser.Scene {
         }
     }
 
-    // === 🏁 Завершение уровня ===
+    // === Завершение уровня ===
     _endLevel(win) {
         this._gameEndTriggered = true;
         if (win)  { this.playSound('win', { volume: 0.3, cooldownMs: 250 }); return;}
@@ -387,13 +497,17 @@ class Game extends Phaser.Scene {
         });
     }
 
-    // === 🔄 Игровой цикл ===
+    // === Игровой цикл ===
     update() {
         if (this._gameEndTriggered) return;
 
         this.paddle?.update();
-        this.ball?.update();
+        
+        // Обновляем все мячи
+        this.balls.forEach(ball => ball?.update());
+        
         this.keepBallMoving(); // Поддерживаем скорость мяча
+        this._updateBonuses(); // Обновляем бонусы
 
         // Проверка победы
         if (this.bricks?.countActive(true) === 0 && this.bricks?.getLength() > 0) {

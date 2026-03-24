@@ -26,7 +26,7 @@ const UI = {
     MOBILE_BREAKPOINT: 1000,
     PADDLE_Y_OFFSET: 100,
     BALL_Y_OFFSET: 10,
-    BRICK_START_Y: 200,
+    BRICK_START_Y: 100,
     TEXT_FONT: '20px "Press Start 2P", cursive',
     TEXT_COLOR: '#ffffff',
     LAUNCH_TEXT_SIZE: '32px "Press Start 2P", cursive'

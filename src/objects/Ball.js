@@ -55,8 +55,11 @@ class Ball {
         }
 
         // Проверка падения мяча
-        if (this.y > this.scene.game.config.height - 30) {
-            this.scene.loseLife();
+        if (this.y > this.scene.game.config.height - 30 && this.isLaunched) {
+            // Останавливаем мяч, чтобы проверка не срабатывала снова
+            this.isLaunched = false;
+            this.body.setVelocity(0, 0);
+            this.scene.ballLost(this);
         }
     }
 
