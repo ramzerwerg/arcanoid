@@ -30,22 +30,24 @@ class Pause extends Phaser.Scene {
         const menuX = width / 2;
         const menuY = height / 2;
         
-        this.menuBg = this.add.rectangle(menuX, menuY, menuWidth, menuHeight, 0x1a1a2e)
+        this.menuBg = this.add.rectangle(menuX, menuY, menuWidth, menuHeight, 0xfdffff)
             .setOrigin(0.5)
-            .setStrokeStyle(3, 0x00d9ff);
+            .setStrokeStyle(10, 0x777777);
         
         // Заголовок
         this.add.text(menuX, menuY - 120, 'ПАУЗА', {
-            font: '40px Arial',
-            color: '#00d9ff',
+            fontSize: '40px',
+            fontFamily: '"Press Start 2P", Arial',
+            color: '#414141',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         
         // === 3. Кнопки меню ===
         const buttonStyle = {
-            font: '24px Arial',
-            color: '#ffffff',
-            backgroundColor: '#00d9ff',
+            fontSize: '24px',
+            fontFamily: '"Press Start 2P", Arial',
+            color: '#414141',
+            backgroundColor: '#fdffff',
             padding: { x: 30, y: 15 },
             margin: { x:10, y: 15}
         };
@@ -54,8 +56,8 @@ class Pause extends Phaser.Scene {
         this.btnResume = this.add.text(menuX, menuY - 40, '▶ Продолжить', buttonStyle)
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnResume.setStyle({ backgroundColor: '#00b8d9' }))
-            .on('pointerout', () => this.btnResume.setStyle({ backgroundColor: '#00d9ff' }))
+            .on('pointerover', () => this.btnResume.setStyle({ backgroundColor: '#fdffff' }))
+            .on('pointerout', () => this.btnResume.setStyle({ backgroundColor: '#fdffff' }))
             .on('pointerdown', () => this.resumeGame());
         
         // Кнопка "Звуки: Вкл/Выкл"
@@ -63,8 +65,8 @@ class Pause extends Phaser.Scene {
         this.btnSound = this.add.text(menuX, menuY + 10, this.soundButtonText, buttonStyle)
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnSound.setStyle({ backgroundColor: '#00b8d9' }))
-            .on('pointerout', () => this.btnSound.setStyle({ backgroundColor: '#00d9ff' }))
+            .on('pointerover', () => this.btnSound.setStyle({ backgroundColor: '#fdffff' }))
+            .on('pointerout', () => this.btnSound.setStyle({ backgroundColor: '#fdffff' }))
             .on('pointerdown', () => this.toggleSound());
         
         // Кнопка "Музыка: Вкл/Выкл"
@@ -72,19 +74,19 @@ class Pause extends Phaser.Scene {
         this.btnMusic = this.add.text(menuX, menuY + 60, this.musicButtonText, buttonStyle)
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnMusic.setStyle({ backgroundColor: '#00b8d9' }))
-            .on('pointerout', () => this.btnMusic.setStyle({ backgroundColor: '#00d9ff' }))
+            .on('pointerover', () => this.btnMusic.setStyle({ backgroundColor: '#fdffff' }))
+            .on('pointerout', () => this.btnMusic.setStyle({ backgroundColor: '#fdffff' }))
             .on('pointerdown', () => this.toggleMusic());
         
         // Кнопка "Выйти в меню"
-        this.btnExit = this.add.text(menuX, menuY + 110, '🏠 Выйти в меню', {
+        this.btnExit = this.add.text(menuX, menuY + 110, 'Выйти в меню', {
             ...buttonStyle,
-            backgroundColor: '#ff6b6b'
+            backgroundColor: '#fdffff'
         })
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnExit.setStyle({ backgroundColor: '#ee5a5a' }))
-            .on('pointerout', () => this.btnExit.setStyle({ backgroundColor: '#ff6b6b' }))
+            .on('pointerover', () => this.btnExit.setStyle({ backgroundColor: '#fdffff' }))
+            .on('pointerout', () => this.btnExit.setStyle({ backgroundColor: '#fdffff' }))
             .on('pointerdown', () => this.exitToMenu());
         
         // === 4. Обработка клавиши Esc ===
@@ -133,14 +135,14 @@ class Pause extends Phaser.Scene {
     }
     
     updateSoundButtonText() {
-        this.soundButtonText = `🔊 Звуки: ${this.soundEnabled ? 'Вкл' : 'Выкл'}`;
+        this.soundButtonText = `Звуки: ${this.soundEnabled ? 'Вкл' : 'Выкл'}`;
         if (this.btnSound) {
             this.btnSound.setText(this.soundButtonText);
         }
     }
     
     updateMusicButtonText() {
-        this.musicButtonText = `🎵 Музыка: ${this.musicEnabled ? 'Вкл' : 'Выкл'}`;
+        this.musicButtonText = `Музыка: ${this.musicEnabled ? 'Вкл' : 'Выкл'}`;
         if (this.btnMusic) {
             this.btnMusic.setText(this.musicButtonText);
         }

@@ -3,7 +3,7 @@ class Brick {
         this.scene = scene;
         this.points = points;
         this.hp = 2;
-        this.bonusChance = 0.25; // 7% шанс выпадения бонуса
+        this.bonusChance = 0.07; // 7% шанс выпадения бонуса
 
         // Визуал
         this.sprite = scene
@@ -29,10 +29,9 @@ class Brick {
     }
 
     getBonusType() {
-        const types = ['multiball', 'expand', 'speed'];
+        const types = ['ball', 'expand', 'speed'];
         return types[Math.floor(Math.random() * types.length)];
     }
-
 
     hit() {
         this.hp--;

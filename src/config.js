@@ -27,7 +27,8 @@ const UI = {
     PADDLE_Y_OFFSET: 100,
     BALL_Y_OFFSET: 10,
     BRICK_START_Y: 100,
-    TEXT_FONT: '20px "Press Start 2P", cursive',
-    TEXT_COLOR: '#ffffff',
-    LAUNCH_TEXT_SIZE: '32px "Press Start 2P", cursive'
+    TEXT_FONT: '"Press Start 2P", Arial',
+    TEXT_COLOR: '#414141',
+    LAUNCH_TEXT_SIZE: '32px',
+    TEXT_SIZE: '18px'
 };

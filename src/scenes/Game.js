@@ -15,14 +15,20 @@ class Game extends Phaser.Scene {
 
     create() {
         const { width, height } = this.game.config;
+
+        let bg_arena = this.add.image(0, 0, 'bg_arena').setOrigin(0, 0);
+        bg_arena.displayWidth = width
+        bg_arena.displayHeight = height;
+
         this._cachedSpeed = GAME_CONFIG.ball.speed; // Кэш скорости
 
         this._createTopMenu(width, height);     // Создание меню сверху
+        this._createUI(width, height);          // Создание кнопок для меню паузы
+        this._createBorders(width, height);     // Создание границ (слева, справа)
         this._setupInput();                     // Назначение унопок управления
         this._createGameObjects(width, height); // Создание гровых объектов (Платформа, мячи, бонусы)
         this._createBricks();                   // Генерация кирпичей на уровне
         this._setupCollisions();                // Установка коллизий
-        this._createUI(width, height);          // Создание кнопок для меню паузы
         this._setupParticles();                 // Установка частиц при взрыве кирпичика
         this._setupPause(width);                // Создание паузы
         this._animateIntro();                   // Анимация выдвижения паузы
@@ -41,7 +47,7 @@ class Game extends Phaser.Scene {
         this.menuHeight = menuHeight; // Сохраняем для использования в других методах
 
         // Фон
-        this.topMenuBg = this.add.rectangle(0, 0, width, menuHeight, 0x1a1a2e)
+        this.topMenuBg = this.add.rectangle(0, 0, width, menuHeight, 0xfdfdfd)
             .setOrigin(0, 0);
         
         // Декоративная линия
@@ -51,6 +57,44 @@ class Game extends Phaser.Scene {
         const boundary = this.add.rectangle(width / 2, menuHeight / 2, width, menuHeight, 0, 0);
         this.physics.add.existing(boundary, true);
         this.topMenuBoundary = boundary;
+    }
+
+    // === UI ===
+    _createUI(width, height) {
+        const style = { fontSize: UI.TEXT_SIZE, fontFamily: UI.TEXT_FONT, color: UI.TEXT_COLOR };
+        
+        this.scoreText = this.add.text(20, this.menuHeight / 3, `Счет: ${this.score}`, style);
+        this.livesText = this.add.text(width - 20 - 70, this.menuHeight / 3, `Жизни: ${this.lives}`, {
+            ...style
+        }).setOrigin(1, 0);
+        this.levelText = this.add.text(width / 2, this.menuHeight / 3, `Уровень: ${this.currentLevel + 1}`, {
+            ...style
+        }).setOrigin(0.5, 0);
+
+        this.launchText = this.add.text(width / 2, height / 2, 'Нажми для запуска', {
+            fontSize: UI.LAUNCH_TEXT_SIZE,
+            fontFamily: UI.TEXT_FONT,
+            color: '#E5E5E5',
+            stroke: "#424141",
+            strokeThickness: 8,
+        }).setOrigin(0.5);
+    }
+
+    _createBorders(width, height) {
+        const borderWidth = 20;
+        const borderHeight = height * 2;
+        
+        this.borderHeight = borderHeight; // Сохраняем для использования в других методах
+        this.borderWidth = borderWidth; // Сохраняем для использования в других методах
+        
+        // Физическая граница (статичное тело)
+        const leftBoundary = this.add.rectangle(borderWidth / 2, 0, borderWidth, borderHeight, 0, 0);
+        this.physics.add.existing(leftBoundary, true);
+        this.leftBorderBoundary = leftBoundary;
+
+        const rightBoundary = this.add.rectangle(width - borderWidth / 2, 0, borderWidth, borderHeight, 0, 0);
+        this.physics.add.existing(rightBoundary, true);
+        this.rightBorderBoundary = rightBoundary;
     }
 
     // === Управление ===
@@ -120,6 +164,14 @@ class Game extends Phaser.Scene {
             this.sound?.play('bounce', { volume: 0.2 });
         });
 
+        this.physics.add.collider(this.ball.sprite, this.leftBorderBoundary, () => {
+            this.sound?.play('bounce', { volume: 0.2 });
+        });
+
+        this.physics.add.collider(this.ball.sprite, this.rightBorderBoundary, () => {
+            this.sound?.play('bounce', { volume: 0.2 });
+        });
+
         // Столкновение с границами поля
         this.ball.sprite.body.onWorldBounds = true;
         this.physics.world.on('worldbounds', () => {
@@ -144,36 +196,18 @@ class Game extends Phaser.Scene {
         }
     }
 
-    // === UI ===
-    _createUI(width, height) {
-        const style = { font: UI.TEXT_FONT, color: UI.TEXT_COLOR };
-        
-        this.scoreText = this.add.text(20, this.menuHeight / 3, `Счет: ${this.score}`, style);
-        this.livesText = this.add.text(width - 20 - 70, this.menuHeight / 3, `Жизни: ${this.lives}`, {
-            ...style
-        }).setOrigin(1, 0);
-        this.levelText = this.add.text(width / 2, this.menuHeight / 3, `Уровень: ${this.currentLevel + 1}`, {
-            ...style
-        }).setOrigin(0.5, 0);
-
-        this.launchText = this.add.text(width / 2, height / 2, 'Нажми для запуска', {
-            font: UI.LAUNCH_TEXT_SIZE,
-            color: '#00d9ff'
-        }).setOrigin(0.5);
-    }
-
     // === Пауза ===
     _setupPause(width) {
         this.pauseButton = this.add.text(width - 20, 5, '⏸', {
             font: '28px Arial',
-            color: '#ffffff',
-            backgroundColor: '#00d9ff',
+            color: '#525252',
+            backgroundColor: '#d3d3d3',
             padding: { x: 12, y: 8 }
         })
             .setOrigin(1, 0)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this._onButtonHover(this.pauseButton, '#00b8d9'))
-            .on('pointerout', () => this._onButtonHover(this.pauseButton, '#00d9ff'))
+            .on('pointerover', () => this._onButtonHover(this.pauseButton, '#d3d3d3'))
+            .on('pointerout', () => this._onButtonHover(this.pauseButton, '#d3d3d3'))
             .on('pointerdown', () => this.pauseGame());
         
         this.escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
@@ -247,13 +281,6 @@ class Game extends Phaser.Scene {
     }
 
     handleBrickCollision(ballSprite, brickSprite) {
-        // Debounce: пропускаем коллизии, если прошло слишком мало времени
-        const now = this.time.now;
-        if (now - this.lastBrickCollisionTime < this.brickCollisionCooldown) {
-            return;
-        }
-        this.lastBrickCollisionTime = now;
-
         // Гвард-клаузы для раннего выхода
         if (!brickSprite?.active || !brickSprite.body?.enable || !brickSprite?._brick) return;
 
@@ -277,10 +304,10 @@ class Game extends Phaser.Scene {
         this.scoreText.setText(`Счет: ${this.score}`);
         this.sound?.play('hit', { volume: 0.2 });
         this.particles?.emitParticleAt(brickSprite.x, brickSprite.y, 10);
-
+        
         // Безопасное удаление кирпича
         this._destroyBrick(brickSprite);
-    }
+    }  
 
     bounceOffBrick(ballSprite, brickSprite) {
         const ballBody = ballSprite.body;
@@ -336,15 +363,15 @@ class Game extends Phaser.Scene {
     // === Бонусы ===
     _spawnBonus(x, y, type) {
         // Задаём вектор падения: немного вниз и случайно влево/вправо
-        const velocityX = (Math.random() - 0.5) * 100; // Случайное отклонение по X
-        const velocityY = 150 + Math.random() * 50; // Скорость падения вниз
-        const bonus = new Bonus(this, x, y, type, velocityX, velocityY);
+        const bonus = new Bonus(this, x, y, type);
         this.bonuses.push(bonus);
-        this.bonusGroup.add(bonus.container);
+        this.bonusGroup.add(bonus.sprite);
     }
 
-    _handleBonusCollection(paddleSprite, bonusContainer) {
-        const bonus = bonusContainer._bonus;
+    _handleBonusCollection(paddleSprite, bonusSprite) {
+        const bonus = bonusSprite._bonus;
+        
+        
         if (bonus && bonus.isActive) {
             bonus.activate();
             this.sound?.play('bonus', { volume: 0.2 });
@@ -360,12 +387,12 @@ class Game extends Phaser.Scene {
         // Обновляем каждый бонус
         for (let i = this.bonuses.length - 1; i >= 0; i--) {
             const bonus = this.bonuses[i];
-
+            
             bonus.body.setVelocityY(200)
             // Если бонус не активен (уже подобран) - удаляем
             if (!bonus.isActive) {
-                if (bonus.container && bonus.container.active) {
-                    bonus.container.destroy();
+                if (bonus.sprite && bonus.sprite.active) {
+                    bonus.sprite.destroy();
                 }
                 this.bonuses.splice(i, 1);
                 continue;
@@ -374,8 +401,8 @@ class Game extends Phaser.Scene {
             // Если бонус упал ниже экрана - удаляем без активации
             if (bonus.y > height) {
                 bonus.isActive = false;
-                if (bonus.container && bonus.container.active) {
-                    bonus.container.destroy();
+                if (bonus.sprite && bonus.sprite.active) {
+                    bonus.sprite.destroy();
                 }
                 this.bonuses.splice(i, 1);
             }
@@ -465,7 +492,7 @@ class Game extends Phaser.Scene {
                 this.game.config.height / 2,
                 'Нажми для запуска', {
                     font: UI.LAUNCH_TEXT_SIZE,
-                    color: '#00d9ff'
+                    color: '#fafdf4'
                 }
             ).setOrigin(0.5);
         }
