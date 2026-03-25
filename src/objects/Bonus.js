@@ -2,21 +2,24 @@ class Bonus {
     constructor(scene, x, y, type) {
         this.scene = scene;
         this.type = type; // 'ball', 'expand', 'speed'
-        this.width = 56;
-        this.height = 30;
+        this.width = 86;
+        this.height = 50;
         this.isActive = true;
 
         // Создаём текстуру для бонуса динамически
         const textureKey = `bonus_${type}`;
         this.sprite = scene
-        .add.image(x, y, textureKey)
-        .setOrigin(0, 0);
+            .add.image(x, y, textureKey)
+            .setOrigin(0.5, 0.5);
 
         // Физика
         scene.physics.add.existing(this.sprite);
         this.body = this.sprite.body;
         this.body.allowGravity = false;
         this.body.checkCollision.none = false;
+
+        // Ссылка для удобного доступа из коллизий
+        this.sprite._bonus = this;
     }
 
     get x() { return this.sprite.x; }
@@ -29,7 +32,7 @@ class Bonus {
         this.isActive = false;
 
         // Воспроизводим звук
-        this.scene.sound?.play('bonus', { volume: 0.3 });
+        this.scene.sound?.play('bonus', { volume: 0.5 });
 
         // Активируем эффект в зависимости от типа
         switch (this.type) {
@@ -70,10 +73,17 @@ class Bonus {
 
         // Добавляем коллизию с верхним меню
         this.scene.physics.add.collider(newBall.sprite, this.scene.topMenuBoundary, () => {
-            this.scene.sound?.play('bounce', { volume: 0.2 });
+            this.scene.sound?.play('bounce', { volume: 0.5 });
         });
 
         // Добавляем коллизию с границами поля
+        this.scene.physics.add.collider(newBall.sprite, this.scene.leftBorderBoundary, () => {
+            this.scene.sound?.play('bounce', { volume: 0.2 });
+        });
+        this.scene.physics.add.collider(newBall.sprite, this.scene.rightBorderBoundary, () => {
+            this.scene.sound?.play('bounce', { volume: 0.2 });
+        });
+        
         newBall.sprite.body.onWorldBounds = true;
     }
 

@@ -17,6 +17,9 @@ class Paddle {
         this.body.setCollideWorldBounds(true);
 
         this.speed = GAME_CONFIG.paddle.speed;
+        
+        // Текущая ширина (для корректных границ)
+        this.currentWidth = this.originalWidth;
     }
 
     get x() { return this.sprite.x; }
@@ -32,14 +35,20 @@ class Paddle {
         // Увеличиваем ширину на фактор
         const newWidth = this.originalWidth * factor;
         this.sprite.setDisplaySize(newWidth, this.originalHeight);
-        
+        this.currentWidth = newWidth;
+
         // Возвращаем к нормальному размеру через 10 секунд
         this.scene.time.delayedCall(10000, () => {
             this.sprite.setDisplaySize(this.originalWidth, this.originalHeight);
+            this.currentWidth = this.originalWidth;
         });
     }
 
     update() {
+        const gameWidth = this.scene.game.config.width;
+        const borderWidth = this.scene.borderWidth || 20;
+        const halfWidth = this.currentWidth / 2;
+
         // Клавиатура
         if (this.scene.cursors?.left?.isDown) {
             this.body.setVelocityX(-this.speed);
@@ -53,10 +62,17 @@ class Paddle {
         if (this.scene.input?.activePointer?.isDown) {
             const pointerX = this.scene.input.activePointer.x;
             this.x = Phaser.Math.Clamp(
-                pointerX, 
-                GAME_CONFIG.paddle.width / 2, 
-                this.scene.game.config.width - GAME_CONFIG.paddle.width / 2
+                pointerX,
+                borderWidth + halfWidth,
+                gameWidth - borderWidth - halfWidth
             );
         }
+
+        // Ограничиваем позицию платформы границами (даже для клавиатуры)
+        this.x = Phaser.Math.Clamp(
+            this.x,
+            borderWidth + halfWidth,
+            gameWidth - borderWidth - halfWidth
+        );
     }
 }

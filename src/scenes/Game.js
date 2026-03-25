@@ -11,6 +11,9 @@ class Game extends Phaser.Scene {
         this.lives = data.lives ?? 3;
         this._soundCooldowns = {};
         this._gameEndTriggered = false;
+        
+        // Загружаем рекорд из localStorage
+        this.highScore = parseInt(localStorage.getItem('arkanoid_highScore') || '0', 10);
     }
 
     create() {
@@ -47,14 +50,12 @@ class Game extends Phaser.Scene {
         this.menuHeight = menuHeight; // Сохраняем для использования в других методах
 
         // Фон
-        this.topMenuBg = this.add.rectangle(0, 0, width, menuHeight, 0xfdfdfd)
-            .setOrigin(0, 0);
-        
+        this.topMenuBg = this.add.image(width / 2, menuHeight, 'menu_bar').setOrigin(0.5, 0).setDisplaySize(width - 10, menuHeight)
         // Декоративная линия
         // this.add.rectangle(0, menuHeight, width, 2, 0x00d9ff).setOrigin(0, 0);
         
         // Физическая граница (статичное тело)
-        const boundary = this.add.rectangle(width / 2, menuHeight / 2, width, menuHeight, 0, 0);
+        const boundary = this.add.rectangle(width / 2, menuHeight + 20, width, menuHeight + 20, 0, 0);
         this.physics.add.existing(boundary, true);
         this.topMenuBoundary = boundary;
     }
@@ -62,12 +63,16 @@ class Game extends Phaser.Scene {
     // === UI ===
     _createUI(width, height) {
         const style = { fontSize: UI.TEXT_SIZE, fontFamily: UI.TEXT_FONT, color: UI.TEXT_COLOR };
+        const smallStyle = { fontSize: '14px', fontFamily: UI.TEXT_FONT, color: '#666666' };
+
+        this.scoreText = this.add.text(20, this.menuHeight / 3 - 5, `Счет:${this.score}`, style);
+        this.highScoreText = this.add.text(20, this.menuHeight / 3 + 17, `Рекорд:${this.highScore}`, smallStyle);
         
-        this.scoreText = this.add.text(20, this.menuHeight / 3, `Счет: ${this.score}`, style);
-        this.livesText = this.add.text(width - 20 - 70, this.menuHeight / 3, `Жизни: ${this.lives}`, {
-            ...style
-        }).setOrigin(1, 0);
-        this.levelText = this.add.text(width / 2, this.menuHeight / 3, `Уровень: ${this.currentLevel + 1}`, {
+        // Спрайт мяча для жизней
+        this.add.image(width - 155, this.menuHeight / 3 + 12, 'ball').setDisplaySize(30, 30);
+        this.livesText = this.add.text(width - 140, this.menuHeight / 3 + 5, `:${this.lives}`, style);
+        
+        this.levelText = this.add.text(width / 2, this.menuHeight / 3 + 5, `Уровень ${this.currentLevel + 1}`, {
             ...style
         }).setOrigin(0.5, 0);
 
@@ -133,7 +138,7 @@ class Game extends Phaser.Scene {
         const totalWidth = levelData[0].length * (brickWidth + gap) - gap;
         const startX = (this.game.config.width - totalWidth) / 2;
         const startY = UI.BRICK_START_Y;
-        const textures = ['brick1', 'brick2', 'brick3'];
+        const textures = ['brick1', 'brick2', 'brick3', 'brickTNT'];
 
         levelData.forEach((row, rowIndex) => {
             row.split('').forEach((cell, colIndex) => {
@@ -141,10 +146,21 @@ class Game extends Phaser.Scene {
                     const x = startX + colIndex * (brickWidth + gap);
                     const y = startY + rowIndex * (brickHeight + gap);
                     const digit = parseInt(cell, 10);
+                    
+                    // TNT блок (цифра 4)
+                    let texture, points;
+                    if (digit === 4) {
+                        texture = 'brickTNT';
+                        points = 50; // Больше очков за TNT
+                    } else {
+                        texture = textures[digit - 1] || 'brick1';
+                        points = digit * 10;
+                    }
+                    
                     const brick = new Brick(
-                        this, x, y, brickWidth, brickHeight, 
-                        textures[digit - 1] || 'brick1', 
-                        digit * 10
+                        this, x, y, brickWidth, brickHeight,
+                        texture,
+                        points
                     );
                     this.bricks.add(brick.sprite);
                 }
@@ -156,26 +172,30 @@ class Game extends Phaser.Scene {
     _setupCollisions() {
         this.physics.add.collider(this.ball.sprite, this.paddle.sprite, this.handlePaddleHit, null, this);
 
-        // Используем overlap для обработки отскока
+        // Коллизия с кирпичами (используем collider для надёжной обработки)
         this.physics.add.overlap(this.ball.sprite, this.bricks, this.handleBrickCollision, null, this);
 
         // Столкновение с верхним меню
         this.physics.add.collider(this.ball.sprite, this.topMenuBoundary, () => {
-            this.sound?.play('bounce', { volume: 0.2 });
+            this.sound?.play('bounce', { volume: 0.5 });
         });
 
         this.physics.add.collider(this.ball.sprite, this.leftBorderBoundary, () => {
-            this.sound?.play('bounce', { volume: 0.2 });
+            this.sound?.play('bounce', { volume: 0.5 });
         });
 
         this.physics.add.collider(this.ball.sprite, this.rightBorderBoundary, () => {
-            this.sound?.play('bounce', { volume: 0.2 });
+            this.sound?.play('bounce', { volume: 0.5 });
         });
+
+        // Коллизия Paddle с границами (чтобы не проходил сквозь них)
+        this.physics.add.collider(this.paddle.sprite, this.leftBorderBoundary);
+        this.physics.add.collider(this.paddle.sprite, this.rightBorderBoundary);
 
         // Столкновение с границами поля
         this.ball.sprite.body.onWorldBounds = true;
         this.physics.world.on('worldbounds', () => {
-            this.sound?.play('bounce', { volume: 0.2 });
+            this.sound?.play('bounce', { volume: 0.5 });
         });
 
         // Коллизия бонусов с paddle
@@ -194,6 +214,26 @@ class Game extends Phaser.Scene {
         } catch {
             this.particles = null;
         }
+    }
+
+    // === Анимация очков ===
+    _showFloatingText(x, y, text, color = '#ffffff') {
+        const floatingText = this.add.text(x, y, `+${text}`, {
+            fontSize: UI.TEXT_SIZE,
+            fontFamily: UI.TEXT_FONT,
+            color: color,
+            stroke: '#424141',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+            targets: floatingText,
+            y: y - 50,
+            alpha: 0,
+            duration: 800,
+            ease: 'Power2.out',
+            onComplete: () => floatingText.destroy()
+        });
     }
 
     // === Пауза ===
@@ -251,7 +291,7 @@ class Game extends Phaser.Scene {
     }
 
     // === Звуки ===
-    playSound(key, { volume = 0.3, cooldownMs = 60 } = {}) {
+    playSound(key, { volume = 0.5, cooldownMs = 60 } = {}) {
         if (!this.soundEnabled || !this.sound) return;
         
         const now = this.time.now;
@@ -277,7 +317,7 @@ class Game extends Phaser.Scene {
         const jitter = Phaser.Math.FloatBetween(-0.05, 0.05) * speed;
         ballSprite.body.setVelocity(newVx + jitter, newVy);
         
-        this.playSound('bounce', { volume: 0.3, cooldownMs: 40 });
+        this.playSound('bounce', { volume: 0.5, cooldownMs: 40 });
     }
 
     handleBrickCollision(ballSprite, brickSprite) {
@@ -290,7 +330,7 @@ class Game extends Phaser.Scene {
         this.bounceOffBrick(ballSprite, brickSprite);
 
         if (!brick.hit()) {
-            this.sound?.play('bounce', { volume: 0.2 });
+            this.sound?.play('bounce', { volume: 0.5 });
             return;
         }
 
@@ -302,12 +342,27 @@ class Game extends Phaser.Scene {
         // Эффекты
         this.score += brick.points;
         this.scoreText.setText(`Счет: ${this.score}`);
-        this.sound?.play('hit', { volume: 0.2 });
-        this.particles?.emitParticleAt(brickSprite.x, brickSprite.y, 10);
+
+        // Обновляем рекорд, если текущий счет выше
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            this.highScoreText.setText(`Рекорд: ${this.highScore}`);
+            localStorage.setItem('arkanoid_highScore', this.highScore.toString());
+        }
+
+        // Если это TNT блок - вызываем взрыв
+        if (brick.isTNT) {
+            brick.explode();
+        } else {
+            this.sound?.play('hit', { volume: 0.5 });
+        }
         
+        this.particles?.emitParticleAt(brickSprite.x, brickSprite.y, 10);
+        this._showFloatingText(brickSprite.x, brickSprite.y, brick.points.toString(), '#ffffff');
+
         // Безопасное удаление кирпича
         this._destroyBrick(brickSprite);
-    }  
+    }
 
     bounceOffBrick(ballSprite, brickSprite) {
         const ballBody = ballSprite.body;
@@ -332,7 +387,7 @@ class Game extends Phaser.Scene {
         if (overlapX > 0 && overlapY > 0) {
             if (overlapX < overlapY) {
                 // Удар сбоку - меняем X
-                ballBody.setVelocityX(-ballBody.velocity.x);
+                ballBody.setVelocityX(-ballBody.velocity.x * 1.5);
             } else {
                 // Удар сверху/снизу - меняем Y
                 ballBody.setVelocityY(-ballBody.velocity.y);
@@ -366,6 +421,9 @@ class Game extends Phaser.Scene {
         const bonus = new Bonus(this, x, y, type);
         this.bonuses.push(bonus);
         this.bonusGroup.add(bonus.sprite);
+        
+        // Устанавливаем скорость падения
+        bonus.body.setVelocityY(150);
     }
 
     _handleBonusCollection(paddleSprite, bonusSprite) {
@@ -374,7 +432,7 @@ class Game extends Phaser.Scene {
         
         if (bonus && bonus.isActive) {
             bonus.activate();
-            this.sound?.play('bonus', { volume: 0.2 });
+            this.sound?.play('bonus', { volume: 0.5 });
             // Удаляем из массива
             this.bonuses = this.bonuses.filter(b => b !== bonus);
             // Группа будет обновлена в _updateBonuses
@@ -388,7 +446,6 @@ class Game extends Phaser.Scene {
         for (let i = this.bonuses.length - 1; i >= 0; i--) {
             const bonus = this.bonuses[i];
             
-            bonus.body.setVelocityY(200)
             // Если бонус не активен (уже подобран) - удаляем
             if (!bonus.isActive) {
                 if (bonus.sprite && bonus.sprite.active) {
@@ -441,8 +498,8 @@ class Game extends Phaser.Scene {
         if (this._gameEndTriggered) return;
 
         this.lives--;
-        this.livesText.setText(`Жизни: ${this.lives}`);
-        this.playSound('lose', { volume: 0.3, cooldownMs: 250 });
+        this.livesText.setText(`:${this.lives}`);
+        this.playSound('lose', { volume: 0.7, cooldownMs: 250 });
 
         if (this.lives <= 0) {
             this._endLevel(false);
@@ -470,7 +527,7 @@ class Game extends Phaser.Scene {
         lostBall.sprite.destroy();
 
         // Воспроизводим звук
-        this.playSound('lose', { volume: 0.3, cooldownMs: 250 });
+        this.playSound('lose', { volume: 0.7, cooldownMs: 250 });
     }
 
     _resetBall() {
@@ -501,7 +558,7 @@ class Game extends Phaser.Scene {
     // === Завершение уровня ===
     _endLevel(win) {
         this._gameEndTriggered = true;
-        if (win)  { this.playSound('win', { volume: 0.3, cooldownMs: 250 }); return;}
+        if (win)  { this.playSound('win', { volume: 0.7, cooldownMs: 250 }); return;}
         
         this.scene.start('GameOver', { 
             win, 

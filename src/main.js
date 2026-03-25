@@ -1,5 +1,5 @@
 // Функция для запуска музыки (вызывай из Menu.js или Game.js)
-function playBackgroundMusic(scene, key, { loop = true, volume = 0.5 } = {}) {
+function playBackgroundMusic(scene, key, { loop = true, volume = 0.7 } = {}) {
     // Создаем музыку только один раз
     if (!game.backgroundMusic) {
         game.backgroundMusic = scene.sound.add(key, { loop, volume });
@@ -29,6 +29,10 @@ const config = {
     width: GAME_CONFIG.width,
     height: GAME_CONFIG.height,
     backgroundColor: GAME_CONFIG.backgroundColor,
+    fps: {
+        target: 60,
+        forceSetTime: true
+    },
     scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH
@@ -37,7 +41,8 @@ const config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 0 },
-            debug: false
+            debug: false,
+            fps: 60
         }
     },
     scene: [Boot, Preload, Menu, Game, Pause, GameOver]
