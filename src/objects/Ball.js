@@ -1,34 +1,35 @@
 class Ball {
     constructor(scene, x, y) {
         this.scene = scene;
-        
-        const radius = GAME_CONFIG.ball.radius; 
+
+        const radius = GAME_CONFIG.ball.radius;
         const diameter = radius * 2;
-        
+
         // 1. Создаём спрайт
         this.sprite = scene.add.image(x, y, 'ball')
             .setOrigin(0.5, 0.5);
-        
+
         // 2. Вычисляем и применяем масштаб
         // const originalSize = this.sprite.texture.source[0].height;
         // const scale = diameter / originalSize;
         // this.sprite.setScale(scale);
-        
+
         // 3. Добавляем физику ПОСЛЕ масштабирования
         scene.physics.add.existing(this.sprite);
         this.body = this.sprite.body;
-        
+
         // 4. Настройки физики
         this.body.setCollideWorldBounds(true);
         this.body.setBounce(1);
         this.body.setAllowGravity(false);
-        
+
         // 5. компенсируем масштаб в setCircle
         this.body.setCircle(radius);
         this.body.setOffset(0, 0);
-        
-        this.speed = GAME_CONFIG.ball.speed; 
+
+        this.speed = GAME_CONFIG.ball.speed;
         this.isLaunched = false;
+        this.isFalling = false; // Флаг для предотвращения повторной обработки
     }
 
     get x() { return this.sprite.x; }
@@ -52,19 +53,26 @@ class Ball {
         if (!this.isLaunched && this.scene.paddle) {
             this.x = this.scene.paddle.x;
             this.y = this.scene.paddle.y - 40;
+            return;
         }
 
         // Проверка падения мяча
-        if (this.y > this.scene.game.config.height - 30 && this.isLaunched) {
-            // Останавливаем мяч, чтобы проверка не срабатывала снова
+        if (this.isLaunched && !this.isFalling && this.y > this.scene.game.config.height - 30) {
+            // Помечаем как падающий, чтобы обработка не сработала повторно
+            this.isFalling = true;
             this.isLaunched = false;
             this.body.setVelocity(0, 0);
-            this.scene.ballLost(this);
+            
+            // Проверяем, что мяч ещё существует в сцене
+            if (this.sprite && this.sprite.active && this.sprite.scene) {
+                this.scene.ballLost(this);
+            }
         }
     }
 
     reset(x, y) {
         this.isLaunched = false;
+        this.isFalling = false;
         this.body.setVelocity(0, 0);
         this.sprite.setPosition(x, y);
     }

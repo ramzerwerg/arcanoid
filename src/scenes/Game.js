@@ -11,7 +11,8 @@ class Game extends Phaser.Scene {
         this.lives = data.lives ?? 3;
         this._soundCooldowns = {};
         this._gameEndTriggered = false;
-        
+        this._isProcessingLifeLoss = false;
+
         // Загружаем рекорд из localStorage
         this.highScore = parseInt(localStorage.getItem('arkanoid_highScore') || '0', 10);
     }
@@ -177,15 +178,15 @@ class Game extends Phaser.Scene {
 
         // Столкновение с верхним меню
         this.physics.add.collider(this.ball.sprite, this.topMenuBoundary, () => {
-            this.sound?.play('bounce', { volume: 0.5 });
+            this.playSound('bounce', { volume: 0.5 });
         });
 
         this.physics.add.collider(this.ball.sprite, this.leftBorderBoundary, () => {
-            this.sound?.play('bounce', { volume: 0.5 });
+            this.playSound('bounce', { volume: 0.5 });
         });
 
         this.physics.add.collider(this.ball.sprite, this.rightBorderBoundary, () => {
-            this.sound?.play('bounce', { volume: 0.5 });
+            this.playSound('bounce', { volume: 0.5 });
         });
 
         // Коллизия Paddle с границами (чтобы не проходил сквозь них)
@@ -195,7 +196,7 @@ class Game extends Phaser.Scene {
         // Столкновение с границами поля
         this.ball.sprite.body.onWorldBounds = true;
         this.physics.world.on('worldbounds', () => {
-            this.sound?.play('bounce', { volume: 0.5 });
+            this.playSound('bounce', { volume: 0.5 });
         });
 
         // Коллизия бонусов с paddle
@@ -292,11 +293,12 @@ class Game extends Phaser.Scene {
 
     // === Звуки ===
     playSound(key, { volume = 0.5, cooldownMs = 60 } = {}) {
-        if (!this.soundEnabled || !this.sound) return;
-        
+        // Используем AudioManager для проверки состояния SFX
+        if (!AudioManager.isSFXEnabled() || !this.sound) return;
+
         const now = this.time.now;
         if (now - (this._soundCooldowns[key] ?? -Infinity) < cooldownMs) return;
-        
+
         this._soundCooldowns[key] = now;
         this.sound.play(key, { volume });
     }
@@ -305,18 +307,21 @@ class Game extends Phaser.Scene {
     handlePaddleHit(ballSprite, paddleSprite) {
         const hitPoint = ballSprite.x - paddleSprite.x;
         const normalizedHit = Phaser.Math.Clamp(hitPoint / (paddleSprite.width / 2), -1, 1);
-        
+
         const maxAngleRad = Phaser.Math.DegToRad(80);
         const targetAngle = normalizedHit * maxAngleRad;
-        const speed = this._cachedSpeed;
         
+        // Сохраняем текущую скорость мяча (чтобы не сбрасывать бонус скорости)
+        const currentSpeed = Math.hypot(ballSprite.body.velocity.x, ballSprite.body.velocity.y);
+        const speed = Math.max(currentSpeed, this._cachedSpeed); // Не меньше базовой скорости
+
         const newVx = Math.sin(targetAngle) * speed;
         const newVy = -Math.cos(targetAngle) * speed;
-        
+
         // Добавляем микро-рандом для естественности
         const jitter = Phaser.Math.FloatBetween(-0.05, 0.05) * speed;
         ballSprite.body.setVelocity(newVx + jitter, newVy);
-        
+
         this.playSound('bounce', { volume: 0.5, cooldownMs: 40 });
     }
 
@@ -330,7 +335,7 @@ class Game extends Phaser.Scene {
         this.bounceOffBrick(ballSprite, brickSprite);
 
         if (!brick.hit()) {
-            this.sound?.play('bounce', { volume: 0.5 });
+            this.playSound('bounce', { volume: 0.5 });
             return;
         }
 
@@ -354,7 +359,7 @@ class Game extends Phaser.Scene {
         if (brick.isTNT) {
             brick.explode();
         } else {
-            this.sound?.play('hit', { volume: 0.5 });
+            this.playSound('hit', { volume: 0.5 });
         }
         
         this.particles?.emitParticleAt(brickSprite.x, brickSprite.y, 10);
@@ -386,8 +391,8 @@ class Game extends Phaser.Scene {
 
         if (overlapX > 0 && overlapY > 0) {
             if (overlapX < overlapY) {
-                // Удар сбоку - меняем X
-                ballBody.setVelocityX(-ballBody.velocity.x * 1.5);
+                // Удар сбоку - меняем X (без ускорения)
+                ballBody.setVelocityX(-ballBody.velocity.x);
             } else {
                 // Удар сверху/снизу - меняем Y
                 ballBody.setVelocityY(-ballBody.velocity.y);
@@ -428,11 +433,11 @@ class Game extends Phaser.Scene {
 
     _handleBonusCollection(paddleSprite, bonusSprite) {
         const bonus = bonusSprite._bonus;
-        
-        
+
+
         if (bonus && bonus.isActive) {
             bonus.activate();
-            this.sound?.play('bonus', { volume: 0.5 });
+            this.playSound('bonus', { volume: 0.5 });
             // Удаляем из массива
             this.bonuses = this.bonuses.filter(b => b !== bonus);
             // Группа будет обновлена в _updateBonuses
@@ -493,9 +498,31 @@ class Game extends Phaser.Scene {
         });
     }
 
+    // === Возврат скорости после бонуса ===
+    _revertSpeedBoost() {
+        const baseSpeed = this._cachedSpeed;
+        const maxSpeed = baseSpeed * 1.3;
+        
+        this.balls.forEach(ball => {
+            if (!ball?.isLaunched || !ball.sprite?.body) return;
+
+            const body = ball.sprite.body;
+            const currentSpeed = Math.hypot(body.velocity.x, body.velocity.y);
+            
+            // Если скорость выше базовой (но не выше максимума бонуса) - возвращаем к базовой
+            if (currentSpeed > baseSpeed && currentSpeed <= maxSpeed * 1.1) {
+                const directionX = body.velocity.x / currentSpeed;
+                const directionY = body.velocity.y / currentSpeed;
+                body.setVelocity(directionX * baseSpeed, directionY * baseSpeed);
+            }
+        });
+    }
+
     // === Потеря жизни ===
     loseLife() {
-        if (this._gameEndTriggered) return;
+        if (this._gameEndTriggered || this._isProcessingLifeLoss) return;
+        
+        this._isProcessingLifeLoss = true;
 
         this.lives--;
         this.livesText.setText(`:${this.lives}`);
@@ -506,11 +533,13 @@ class Game extends Phaser.Scene {
         } else {
             this._resetBall();
         }
+        
+        this._isProcessingLifeLoss = false;
     }
 
     // === Потеря мяча ===
     ballLost(lostBall) {
-        if (this._gameEndTriggered) return;
+        if (this._gameEndTriggered || this._isProcessingLifeLoss) return;
 
         // Если мяч только один - теряем жизнь
         if (this.balls.length <= 1) {
@@ -558,12 +587,20 @@ class Game extends Phaser.Scene {
     // === Завершение уровня ===
     _endLevel(win) {
         this._gameEndTriggered = true;
-        if (win)  { this.playSound('win', { volume: 0.7, cooldownMs: 250 }); return;}
-        
-        this.scene.start('GameOver', { 
-            win, 
+        if (win)  { 
+            this.playSound('win', { volume: 0.7, cooldownMs: 250 }); 
+            
+            // Сохраняем прогресс: если прошли уровень, открываем следующий
+            const nextLevel = this.currentLevel + 1;
+            GameStorage.setMaxLevel(nextLevel);
+            
+            return;
+        }
+
+        this.scene.start('GameOver', {
+            win,
             score: this.score,
-            level: this.currentLevel 
+            level: this.currentLevel
         });
     }
 

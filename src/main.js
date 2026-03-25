@@ -45,7 +45,7 @@ const config = {
             fps: 60
         }
     },
-    scene: [Boot, Preload, Menu, Game, Pause, GameOver]
+    scene: [Boot, Preload, Menu, LevelSelect, Game, Pause, GameOver]
 };
 
 const game = new Phaser.Game(config);

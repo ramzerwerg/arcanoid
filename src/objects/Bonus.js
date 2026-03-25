@@ -90,21 +90,34 @@ class Bonus {
     _activateExpand() {
         const paddle = this.scene.paddle;
         if (paddle) {
-            paddle.expand(1.5); // Увеличиваем на 50%
+            paddle.expand();
         }
     }
 
     _activateSpeed() {
-        // Увеличиваем скорость всех мячей
+        // Увеличиваем скорость всех мячей максимум до 1.3 от базовой
+        const baseSpeed = this.scene._cachedSpeed || 700;
+        const targetSpeed = baseSpeed * 1.3;
+        
         const balls = this.scene.balls || [this.scene.ball];
         balls.forEach(ball => {
             if (ball && ball.body) {
-                const speedMultiplier = 1.3;
-                ball.body.setVelocity(
-                    ball.body.velocity.x * speedMultiplier,
-                    ball.body.velocity.y * speedMultiplier
-                );
+                const currentSpeed = Math.hypot(ball.body.velocity.x, ball.body.velocity.y);
+                
+                // Увеличиваем скорость только если она меньше целевой
+                if (currentSpeed < targetSpeed) {
+                    const multiplier = targetSpeed / currentSpeed;
+                    ball.body.setVelocity(
+                        ball.body.velocity.x * multiplier,
+                        ball.body.velocity.y * multiplier
+                    );
+                }
             }
+        });
+        
+        // Возвращаем скорость обратно через 10 секунд
+        this.scene.time.delayedCall(10000, () => {
+            this.scene._revertSpeedBoost();
         });
     }
 

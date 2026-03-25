@@ -31,23 +31,38 @@ class Paddle {
     get width() { return this.sprite.displayWidth; }
     get height() { return this.sprite.displayHeight; }
 
-    expand(factor = 1.5) {
-        // Увеличиваем ширину на фактор
-        const newWidth = this.originalWidth * factor;
-        this.sprite.setDisplaySize(newWidth, this.originalHeight);
-        this.currentWidth = newWidth;
-
-        // Возвращаем к нормальному размеру через 10 секунд
+    expand() {
+        const targetScale = 0.7;
+        
+        // Анимация увеличения
+        this.scene.tweens.add({
+            targets: this.sprite,
+            scaleX: targetScale,
+            duration: 100,
+            ease: 'Power2.out',
+            onComplete: () => {
+                this.sprite.setTexture('paddle_2');
+            }
+        });
+        
+        // Возврат через 10 секунд
         this.scene.time.delayedCall(10000, () => {
-            this.sprite.setDisplaySize(this.originalWidth, this.originalHeight);
-            this.currentWidth = this.originalWidth;
+            this.scene.tweens.add({
+                targets: this.sprite,
+                scaleX: 0.5,
+                duration: 100,
+                ease: 'Power2.out',
+                onComplete: () => {
+                    this.sprite.setTexture('paddle');
+                }
+            });
         });
     }
 
     update() {
         const gameWidth = this.scene.game.config.width;
         const borderWidth = this.scene.borderWidth || 20;
-        const halfWidth = this.currentWidth / 2;
+        const halfWidth = (this.originalWidth * this.sprite.scaleX) / 2;
 
         // Клавиатура
         if (this.scene.cursors?.left?.isDown) {
