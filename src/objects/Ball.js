@@ -9,21 +9,16 @@ class Ball {
         this.sprite = scene.add.image(x, y, 'ball')
             .setOrigin(0.5, 0.5);
 
-        // 2. Вычисляем и применяем масштаб
-        // const originalSize = this.sprite.texture.source[0].height;
-        // const scale = diameter / originalSize;
-        // this.sprite.setScale(scale);
-
-        // 3. Добавляем физику ПОСЛЕ масштабирования
+        // 2. Добавляем физику 
         scene.physics.add.existing(this.sprite);
         this.body = this.sprite.body;
 
-        // 4. Настройки физики
+        // 3. Настройки физики
         this.body.setCollideWorldBounds(true);
         this.body.setBounce(1);
         this.body.setAllowGravity(false);
 
-        // 5. компенсируем масштаб в setCircle
+        // 4. компенсируем масштаб в setCircle
         this.body.setCircle(radius);
         this.body.setOffset(0, 0);
 
@@ -64,7 +59,7 @@ class Ball {
         this.sprite.setPosition(x, y);
     }
 
-    // Метод для уничтожения (если понадобится)
+    // Метод для уничтожения
     destroy() {
         this.sprite.destroy();
     }
