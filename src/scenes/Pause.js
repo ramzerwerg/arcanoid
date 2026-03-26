@@ -4,7 +4,6 @@ class Pause extends Phaser.Scene {
     }
 
     init(data) {
-        // Сохраняем ссылку на предыдущую сцену и её данные
         this.previousScene = data.previousScene || 'Game';
         this.sceneData = data.sceneData || {};
     }
@@ -12,102 +11,80 @@ class Pause extends Phaser.Scene {
     create() {
         const { width, height } = this.game.config;
 
-        // === 1. Затемнение фона (оверлей) ===
-        this.overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7)
-            .setOrigin(0)
-            .setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
-                // Клик по затемнению = продолжить (опционально)
-                // this.resumeGame();
-            });
+        // Затемнение фона
+        this.overlay = UIHelper.createOverlay(this, 0.7)
+            .setInteractive({ useHandCursor: true });
 
-        // === 2. Контейнер для меню (по центру) ===
+        // Меню
+        this.createMenu(width, height);
+
+        // Кнопки
+        this.createButtons();
+
+        // Обработка Esc
+        this.escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        this.escKey?.on('up', () => this.resumeGame());
+
+        // Останавливаем предыдущую сцену
+        this.scene.pause(this.previousScene);
+
+        // Анимация появления
+        UIHelper.animatePopIn(this.menuContainer, 300);
+
+        // Появление кнопок
+        this.animateButtons();
+    }
+
+    createMenu(width, height) {
         const menuWidth = 400;
         const menuHeight = 320;
-        const menuX = width / 2;
-        const menuY = height / 2;
+        const centerX = width / 2;
+        const centerY = height / 2;
 
-        this.menuBg = this.add.rectangle(menuX, menuY, menuWidth, menuHeight, 0xfdffff)
+        this.menuContainer = this.add.container(centerX, centerY);
+        this.menuBg = this.add.rectangle(0, 0, menuWidth, menuHeight, 0xfdffff)
             .setOrigin(0.5)
             .setStrokeStyle(10, 0x777777);
+        this.menuContainer.add(this.menuBg);
 
-        // Заголовок
-        this.add.text(menuX, menuY - 120, 'ПАУЗА', {
-            fontSize: '40px',
-            fontFamily: '"Press Start 2P", Arial',
-            color: '#414141',
+        const title = this.add.text(0, -120, 'ПАУЗА', {
+            ...UIHelper.TEXT_STYLES.TITLE,
             fontStyle: 'bold'
         }).setOrigin(0.5);
+        this.menuContainer.add(title);
+    }
 
-        // === 3. Кнопки меню ===
+    createButtons() {
         const buttonStyle = {
             fontSize: '24px',
             fontFamily: '"Press Start 2P", Arial',
             color: '#414141',
             backgroundColor: '#fdffff',
-            padding: { x: 30, y: 15 },
-            margin: { x:10, y: 15}
+            padding: { x: 30, y: 15 }
         };
 
-        // Кнопка "Продолжить"
-        this.btnResume = this.add.text(menuX, menuY - 40, '▶ Продолжить', buttonStyle)
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnResume.setStyle({ backgroundColor: '#e0e0e0' }))
-            .on('pointerout', () => this.btnResume.setStyle({ backgroundColor: '#fdffff' }))
-            .on('pointerdown', () => this.resumeGame());
+        const buttonConfig = [
+            { key: 'btnResume', text: '▶ Продолжить', y: -40, action: () => this.resumeGame() },
+            { key: 'btnSound', text: this.getSFXButtonText(), y: 10, action: () => this.toggleSound() },
+            { key: 'btnMusic', text: this.getMusicButtonText(), y: 60, action: () => this.toggleMusic() },
+            { key: 'btnExit', text: 'Выйти в меню', y: 110, action: () => this.exitToMenu() }
+        ];
 
-        // Кнопка "Звуки: Вкл/Выкл"
-        this.btnSound = this.add.text(menuX, menuY + 10, this.getSFXButtonText(), buttonStyle)
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnSound.setStyle({ backgroundColor: '#e0e0e0' }))
-            .on('pointerout', () => this.btnSound.setStyle({ backgroundColor: '#fdffff' }))
-            .on('pointerdown', () => this.toggleSound());
-
-        // Кнопка "Музыка: Вкл/Выкл"
-        this.btnMusic = this.add.text(menuX, menuY + 60, this.getMusicButtonText(), buttonStyle)
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnMusic.setStyle({ backgroundColor: '#e0e0e0' }))
-            .on('pointerout', () => this.btnMusic.setStyle({ backgroundColor: '#fdffff' }))
-            .on('pointerdown', () => this.toggleMusic());
-
-        // Кнопка "Выйти в меню"
-        this.btnExit = this.add.text(menuX, menuY + 110, 'Выйти в меню', {
-            ...buttonStyle,
-            backgroundColor: '#fdffff'
-        })
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnExit.setStyle({ backgroundColor: '#e0e0e0' }))
-            .on('pointerout', () => this.btnExit.setStyle({ backgroundColor: '#fdffff' }))
-            .on('pointerdown', () => this.exitToMenu());
-
-        // === 4. Обработка клавиши Esc ===
-        this.escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-        this.escKey?.on('up', () => this.resumeGame());
-
-        // === 5. Останавливаем предыдущую сцену ===
-        this.scene.pause(this.previousScene);
-
-        // Анимация появления меню
-        this.menuBg.setScale(0);
-        this.tweens.add({
-            targets: this.menuBg,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 300,
-            ease: 'Back.easeOut'
+        buttonConfig.forEach(config => {
+            this[config.key] = this.add.text(0, config.y, config.text, buttonStyle)
+                .setOrigin(0.5)
+                .setInteractive({ useHandCursor: true })
+                .on('pointerover', () => this[config.key].setStyle({ backgroundColor: '#e0e0e0' }))
+                .on('pointerout', () => this[config.key].setStyle({ backgroundColor: '#fdffff' }))
+                .on('pointerdown', () => config.action());
+            this.menuContainer.add(this[config.key]);
         });
+    }
 
-        // Кнопки появляются с задержкой
-        [
-            this.btnResume,
-            this.btnSound,
-            this.btnMusic,
-            this.btnExit
-        ].forEach((btn, i) => {
+    animateButtons() {
+        const buttons = [this.btnResume, this.btnSound, this.btnMusic, this.btnExit];
+
+        buttons.forEach((btn, i) => {
             btn.setAlpha(0);
             this.tweens.add({
                 targets: btn,
@@ -129,35 +106,40 @@ class Pause extends Phaser.Scene {
     toggleSound() {
         const isEnabled = AudioManager.toggleSFX();
         this.btnSound.setText(this.getSFXButtonText());
+        // Обновляем цвет кнопки
+        const newColor = isEnabled ? '#4CAF50' : '#f44336';
+        this.btnSound.setStyle({ backgroundColor: newColor });
+        this.btnSound.scene.time.delayedCall(150, () => {
+            this.btnSound.setStyle({ backgroundColor: '#fdffff' });
+        });
     }
 
     toggleMusic() {
         const isEnabled = AudioManager.toggleMusic();
         this.btnMusic.setText(this.getMusicButtonText());
+        // Обновляем цвет кнопки
+        const newColor = isEnabled ? '#4CAF50' : '#f44336';
+        this.btnMusic.setStyle({ backgroundColor: newColor });
+        this.btnMusic.scene.time.delayedCall(150, () => {
+            this.btnMusic.setStyle({ backgroundColor: '#fdffff' });
+        });
     }
 
     resumeGame() {
-        // Удаляем оверлей и меню для чистоты
-        this.overlay?.destroy();
-        this.menuBg?.destroy();
-        this.btnResume?.destroy();
-        this.btnSound?.destroy();
-        this.btnMusic?.destroy();
-        this.btnExit?.destroy();
-
-        // Возвращаемся к игре
+        this.destroyUI();
         this.scene.resume(this.previousScene);
         this.scene.stop();
     }
 
     exitToMenu() {
-        // Очищаем паузу
-        this.overlay?.destroy();
-        this.menuBg?.destroy();
-
-        // Останавливаем предыдущую сцену (игра) и переходим в меню
+        this.destroyUI();
         this.scene.stop(this.previousScene);
         this.scene.start('Menu');
         this.scene.stop();
+    }
+
+    destroyUI() {
+        [this.overlay, this.menuContainer, this.btnResume, this.btnSound, this.btnMusic, this.btnExit]
+            .forEach(obj => obj?.destroy());
     }
 }

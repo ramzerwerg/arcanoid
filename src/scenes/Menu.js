@@ -6,79 +6,90 @@ class Menu extends Phaser.Scene {
     create() {
         const { width, height } = this.game.config;
 
-        let bg = this.add.image(0, 0, 'bg').setOrigin(0, 0);
-        bg.displayWidth = width
-        bg.displayHeight = height;
+        // Фон
+        UIHelper.createBackground(this, 'bg');
 
-        // Заголовок
-        let logo = this.add.image(width / 2, height / 3, 'logo').setOrigin(0.5, 0.5);
-        logo.setAlpha(0);
-        logo.setScale(0.8);
+        // Логотип
+        this.logo = this.add.image(width / 2, height / 3, 'logo')
+            .setOrigin(0.5, 0.5)
+            .setScale(0.8)
+            .setAlpha(0);
 
-        // Кнопка старта - запускает первый не пройденный уровень
-        const startButton = this.createBrickButton(
+        // Кнопки
+        this.createButtons(width, height);
+
+        // Инструкция
+        this.createInstruction(width, height);
+
+        // Анимации появления
+        this.animateIntro();
+
+        // Музыка
+        playBackgroundMusic(this, 'backgroundMusic', { volume: 1 });
+    }
+
+    createButtons(width, height) {
+        const startButton = UIHelper.createButton(
+            this,
             width / 2,
             height / 2.2,
             'НАЧАТЬ ИГРУ',
-            () => {
-                // Запускаем первый не пройденный уровень (maxLevel - это следующий для прохождения)
-                const maxLevel = GameStorage.getMaxLevel();
-                this.scene.start('Game', { level: maxLevel });
-            }
-        );
+            () => this.startGame()
+        ).setAlpha(0);
 
-        startButton.setAlpha(0);
-
-        // Кнопка выбора уровня
-        const levelSelectButton = this.createBrickButton(
-            width / 2, 
-            height / 2 + 100, 
+        const levelSelectButton = UIHelper.createButton(
+            this,
+            width / 2,
+            height / 2 + 100,
             'ВЫБОР УРОВНЯ',
             () => this.scene.start('LevelSelect')
-        );
+        ).setAlpha(0);
 
-        // Кнопки настроек (звук и музыка)
+        // Кнопки настроек
         const settingsY = height / 2 + 190;
-        const settingsGap = 290;
+        const settingsGap = 250;
         const settingsX = width / 2 - settingsGap / 2;
 
-        // Кнопка звука
-        this.soundButton = this.createBrickButton(
-            settingsX, 
-            settingsY, 
+        this.soundButton = UIHelper.createToggleButton(
+            this,
+            settingsX,
+            settingsY,
             this.getSFXButtonText(),
-            () => this.toggleSound()
-        );
+            () => this.toggleSound(),
+            AudioManager.isSFXEnabled()
+        ).setAlpha(0);
 
-        // Кнопка музыки
-        this.musicButton = this.createBrickButton(
-            settingsX + settingsGap, 
-            settingsY, 
+        this.musicButton = UIHelper.createToggleButton(
+            this,
+            settingsX + settingsGap,
+            settingsY,
             this.getMusicButtonText(),
-            () => this.toggleMusic()
-        );
+            () => this.toggleMusic(),
+            AudioManager.isMusicEnabled()
+        ).setAlpha(0);
 
-        // Инструкция
-        const instructionText = width < UI.MOBILE_BREAKPOINT
+        // Сохраняем ссылки для анимации
+        this.startButton = startButton;
+        this.levelSelectButton = levelSelectButton;
+    }
+
+    createInstruction(width, height) {
+        const isMobile = width < UI.MOBILE_BREAKPOINT;
+        const instructionText = isMobile
             ? "Управление: двигайте платформой с помощью пальца"
             : "Управление: Мышью или < >";
 
-        const instruction = this.add.text(width / 2, height * 0.75, instructionText, {
-            fontFamily: "'Press Start 2P', Arial",
-            fontSize: '18px',
-            color: '#E5E5E5',
-            stroke: "#424141",
-            strokeThickness: 4,
+        this.instruction = this.add.text(width / 2, height * 0.75, instructionText, {
+            ...UIHelper.TEXT_STYLES.INSTRUCTION,
             align: "center",
-            wordWrap: {
-                width: 420,
-            },
-        }).setOrigin(0.5);
-        instruction.setAlpha(0);
+            wordWrap: { width: 420 }
+        }).setOrigin(0.5).setAlpha(0);
+    }
 
-        // Анимация появления
+    animateIntro() {
+        // Логотип
         this.tweens.add({
-            targets: logo,
+            targets: this.logo,
             alpha: 1,
             scale: 1,
             duration: 600,
@@ -86,8 +97,9 @@ class Menu extends Phaser.Scene {
             delay: 200
         });
 
+        // Кнопка старта с пульсацией
         this.tweens.add({
-            targets: startButton,
+            targets: this.startButton,
             alpha: 1,
             scale: 1.3,
             duration: 800,
@@ -95,7 +107,7 @@ class Menu extends Phaser.Scene {
             delay: 200,
             onComplete: () => {
                 this.tweens.add({
-                    targets: startButton,
+                    targets: this.startButton,
                     scaleX: 1.5,
                     scaleY: 1.5,
                     duration: 800,
@@ -105,8 +117,9 @@ class Menu extends Phaser.Scene {
             }
         });
 
+        // Остальные элементы
         this.tweens.add({
-            targets: levelSelectButton,
+            targets: this.levelSelectButton,
             alpha: 1,
             delay: 400,
             duration: 300
@@ -120,175 +133,39 @@ class Menu extends Phaser.Scene {
         });
 
         this.tweens.add({
-            targets: instruction,
+            targets: this.instruction,
             alpha: 1,
             duration: 500,
             delay: 800
         });
-
-        // playBackgroundMusic(this, 'backgroundMusic', { volume: 1 });
-
-        this.music = this.sound.add('backgroundMusic', { loop: true, volume: 1 });
-    
-        // Отключаем паузу при потере фокуса
-        this.sound.pauseOnBlur = false;
-
-        // Ждём первого касания для разблокировки и запуска музыки
-        this.input.once('pointerdown', () => {
-            // Разблокируем звук
-            this.sound.unlock();
-            
-            // Если звук разблокирован, запускаем музыку
-            if (!this.sound.locked) {
-                this.music.play();
-            } else {
-                // Если всё ещё заблокирован, ждём события разблокировки
-                this.sound.once(Phaser.Sound.Events.UNLOCKED, () => {
-                    this.music.play();
-                });
-            }
-        });
     }
 
-    // Создать кнопку с текстом внутри brick1
-    createBrickButton(x, y, text, callback) {
-        const padding = 25;
-        const fontSize = 25;
-        
-        // Создаём временный текст для измерения
-        const tempText = this.add.text(0, 0, text, {
-            fontSize: `${fontSize}px`,
-            fontFamily: '"Press Start 2P", Arial',
-            color: '#E5E5E5',
-            stroke: "#424141",
-            strokeThickness: 4,
-        }).setOrigin(0.5);
-        
-        // Получаем размеры текста
-        const textBounds = tempText.getBounds();
-        const buttonWidth = textBounds.width + padding * 2;
-        const buttonHeight = textBounds.height + padding * 1.5;
-        
-        tempText.destroy();
-        
-        // Создаём контейнер для кнопки
-        const container = this.add.container(x, y);
-        
-        // Фон из brick1 (растягиваем)
-        const bg = this.add.image(0, 0, 'btn');
-        bg.setDisplaySize(buttonWidth, buttonHeight);
-        bg.setOrigin(0.5);
-        
-        // Текст
-        const buttonText = this.add.text(0, 0, text, {
-            fontSize: `${fontSize}px`,
-            fontFamily: '"Press Start 2P", Arial',
-            color: '#E5E5E5',
-            stroke: "#424141",
-            strokeThickness: 4,
-        }).setOrigin(0.5);
-        
-        container.add([bg, buttonText]);
-        container.setSize(buttonWidth, buttonHeight);
-
-        // Сохраняем ссылки для обновления
-        container.bg = bg;
-        container.text = buttonText;
-
-        // Делаем интерактивным
-        container.setInteractive({ useHandCursor: true })
-            .on('pointerover', () => {
-                bg.setTint(0xcccccc);
-            })
-            .on('pointerout', () => {
-                bg.clearTint();
-            })
-            .on('pointerdown', () => {
-                bg.setTint(0x999999);
-                callback();
-            });
-
-        return container;
+    startGame() {
+        const maxLevel = GameStorage.getMaxLevel();
+        const totalLevels = GameStorage.getTotalLevels();
+        // Если все уровни пройдены, запускаем последний уровень
+        const levelToStart = maxLevel > totalLevels ? totalLevels - 1 : maxLevel - 1;
+        this.scene.start('Game', { level: levelToStart });
     }
 
-    // Создать маленькую кнопку настроек с brick1
-    createBrickButtonSmall(x, y, text, callback, isEnabled) {
-        const padding = 15;
-        const fontSize = 14;
-        
-        // Создаём временный текст для измерения
-        const tempText = this.add.text(0, 0, text, {
-            fontSize: `${fontSize}px`,
-            fontFamily: '"Press Start 2P", Arial',
-            color: '#E5E5E5',
-            stroke: "#424141",
-            strokeThickness: 3,
-        }).setOrigin(0.5);
-        
-        // Получаем размеры текста
-        const textBounds = tempText.getBounds();
-        const buttonWidth = textBounds.width + padding * 2;
-        const buttonHeight = textBounds.height + padding * 1.5;
-        
-        tempText.destroy();
-        
-        // Создаём контейнер для кнопки
-        const container = this.add.container(x, y);
-        
-        // Фон из brick1 (растягиваем)
-        const bg = this.add.image(0, 0, 'brick1');
-        bg.setDisplaySize(buttonWidth, buttonHeight);
-        bg.setOrigin(0.5);
-        
-        // Тонировка в зависимости от состояния
-        if (isEnabled) {
-            bg.setTint(0x4CAF50); // Зелёный для ВКЛ
-        } else {
-            bg.setTint(0xf44336); // Красный для ВЫКЛ
+    toggleSound() {
+        // Разблокируем аудио на iOS
+        if (AudioManager.isIOSDevice && !AudioManager.iosUnlocked) {
+            AudioManager.forceUnlock(this);
         }
-        
-        // Текст
-        const buttonText = this.add.text(0, 0, text, {
-            fontSize: `${fontSize}px`,
-            fontFamily: '"Press Start 2P", Arial',
-            color: '#E5E5E5',
-            stroke: "#424141",
-            strokeThickness: 3,
-        }).setOrigin(0.5);
-        
-        container.add([bg, buttonText]);
-        container.setSize(buttonWidth, buttonHeight);
-        
-        // Делаем интерактивным
-        container.setInteractive({ useHandCursor: true })
-            .on('pointerover', () => {
-                if (isEnabled) {
-                    bg.setTint(0x66BB6A);
-                } else {
-                    bg.setTint(0xef5350);
-                }
-            })
-            .on('pointerout', () => {
-                if (isEnabled) {
-                    bg.setTint(0x4CAF50);
-                } else {
-                    bg.setTint(0xf44336);
-                }
-            })
-            .on('pointerdown', () => {
-                if (isEnabled) {
-                    bg.setTint(0x66BB6A);
-                } else {
-                    bg.setTint(0xef5350);
-                }
-                callback();
-            });
-        
-        // Сохраняем ссылку на bg для обновления тона
-        container.bg = bg;
-        container.text = buttonText;
-        
-        return container;
+
+        const isEnabled = AudioManager.toggleSFX();
+        UIHelper.updateToggleButton(this.soundButton, this.getSFXButtonText(), isEnabled);
+    }
+
+    toggleMusic() {
+        // Разблокируем аудио на iOS
+        if (AudioManager.isIOSDevice && !AudioManager.iosUnlocked) {
+            AudioManager.forceUnlock(this);
+        }
+
+        const isEnabled = AudioManager.toggleMusic();
+        UIHelper.updateToggleButton(this.musicButton, this.getMusicButtonText(), isEnabled);
     }
 
     getSFXButtonText() {
@@ -297,41 +174,5 @@ class Menu extends Phaser.Scene {
 
     getMusicButtonText() {
         return `МУЗЫКА:${AudioManager.isMusicEnabled() ? 'ВКЛ' : 'ВЫКЛ'}`;
-    }
-
-    toggleSound() {
-        const isEnabled = AudioManager.toggleSFX();
-        this.updateSoundButton(isEnabled);
-    }
-
-    toggleMusic() {
-        const isEnabled = AudioManager.toggleMusic();
-        this.updateMusicButton(isEnabled);
-    }
-
-    updateSoundButton(isEnabled) {
-        if (this.soundButton) {
-            this.soundButton.text.setText(this.getSFXButtonText());
-            if (isEnabled) {
-                this.soundButton.bg.clearTint();
-                this.soundButton.bg.setTint(0x4CAF50);
-            } else {
-                this.soundButton.bg.clearTint();
-                this.soundButton.bg.setTint(0xf44336);
-            }
-        }
-    }
-
-    updateMusicButton(isEnabled) {
-        if (this.musicButton) {
-            this.musicButton.text.setText(this.getMusicButtonText());
-            if (isEnabled) {
-                this.musicButton.bg.clearTint();
-                this.musicButton.bg.setTint(0x4CAF50);
-            } else {
-                this.musicButton.bg.clearTint();
-                this.musicButton.bg.setTint(0xf44336);
-            }
-        }
     }
 }
