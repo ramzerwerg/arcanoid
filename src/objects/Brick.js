@@ -4,7 +4,7 @@ class Brick {
         this.points = points;
         this.isTNT = textureKey === 'brickTNT'; // TNT блок
         this.hp = this.isTNT ? 1 : 2; // TNT разрушается с 1 удара
-        this.bonusChance = 0.10; // 10% шанс выпадения бонуса
+        this.bonusChance = 0.90; // 10% шанс выпадения бонуса
 
         // Визуал
         this.sprite = scene
