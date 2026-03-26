@@ -32,16 +32,16 @@ class Paddle {
     get height() { return this.sprite.displayHeight; }
 
     expand() {
-        let newWidth = this.currentWidth + 70;
+        let newWidth = 192;
         if (newWidth < 20) newWidth = 20; // минимальная ширина
-        
+
         this.sprite.setDisplaySize(newWidth, this.originalHeight).setOrigin(0.5, 0.5);
         this.body.setSize(newWidth, this.originalHeight);
-        // this.currentWidth = this.newWidth;
+        this.currentWidth = newWidth;
 
         this.scene.time.delayedCall(10000, () => {
-            this.sprite.setDisplaySize(this.currentWidth, this.originalHeight).setOrigin(0.5, 0.5);
-            this.body.setSize(this.originalWidth + 10, this.originalHeight + 10);
+            this.sprite.setDisplaySize(this.originalWidth, this.originalHeight).setOrigin(0.5, 0.5);
+            this.body.setSize(this.originalWidth, this.originalHeight);
             this.currentWidth = this.originalWidth;
         });
     }
@@ -49,8 +49,9 @@ class Paddle {
     update() {
         const gameWidth = this.scene.game.config.width;
         const borderWidth = this.scene.borderWidth || 60;
+
         // Используем текущую ширину платформы (с учётом масштабирования)
-        const halfWidth = this.currentWidth / 2;
+        const halfWidth = this.sprite.displayWidth / 2;
 
         // Клавиатура
         if (this.scene.cursors?.left?.isDown) {
@@ -72,7 +73,6 @@ class Paddle {
         }
 
         // Ограничиваем позицию платформы границами
-        // Используем текущую ширину для правильного ограничения
         const newX = Phaser.Math.Clamp(
             this.x,
             borderWidth + halfWidth,
