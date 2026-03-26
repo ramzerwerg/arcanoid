@@ -126,7 +126,28 @@ class Menu extends Phaser.Scene {
             delay: 800
         });
 
-        playBackgroundMusic(this, 'backgroundMusic', { volume: 1 });
+        // playBackgroundMusic(this, 'backgroundMusic', { volume: 1 });
+
+        this.music = this.sound.add('backgroundMusic', { loop: true, volume: 1 });
+    
+        // Отключаем паузу при потере фокуса
+        this.sound.pauseOnBlur = false;
+
+        // Ждём первого касания для разблокировки и запуска музыки
+        this.input.once('pointerdown', () => {
+            // Разблокируем звук
+            this.sound.unlock();
+            
+            // Если звук разблокирован, запускаем музыку
+            if (!this.sound.locked) {
+                this.music.play();
+            } else {
+                // Если всё ещё заблокирован, ждём события разблокировки
+                this.sound.once(Phaser.Sound.Events.UNLOCKED, () => {
+                    this.music.play();
+                });
+            }
+        });
     }
 
     // Создать кнопку с текстом внутри brick1
@@ -279,19 +300,11 @@ class Menu extends Phaser.Scene {
     }
 
     toggleSound() {
-        // Разблокируем аудио на iOS при первом клике
-        if (AudioManager.isIOSDevice && !AudioManager.iosUnlocked) {
-            AudioManager.forceUnlock(this);
-        }
         const isEnabled = AudioManager.toggleSFX();
         this.updateSoundButton(isEnabled);
     }
 
     toggleMusic() {
-        // Разблокируем аудио на iOS при первом клике
-        if (AudioManager.isIOSDevice && !AudioManager.iosUnlocked) {
-            AudioManager.forceUnlock(this);
-        }
         const isEnabled = AudioManager.toggleMusic();
         this.updateMusicButton(isEnabled);
     }

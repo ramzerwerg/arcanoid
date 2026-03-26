@@ -7,7 +7,6 @@ const AudioManager = {
     sfxEnabled: true,
     musicEnabled: true,
     iosUnlocked: false,
-    isIOSDevice: false,
 
     // Инициализация (вызывается один раз при загрузке)
     init(scene) {
@@ -15,69 +14,8 @@ const AudioManager = {
         this.sfxEnabled = GameStorage.getSoundEnabled();
         this.musicEnabled = GameStorage.getMusicEnabled();
 
-        // Проверяем iOS
-        this.isIOSDevice = this.isIOS();
-
         // Настраиваем громкость для всех звуков
         this.updateAllVolumes();
-
-        // Разблокировка аудио на iOS
-        if (this.isIOSDevice) {
-            this.setupIOSUnlock(scene);
-        }
-    },
-
-    // Настройка разблокировки аудио на iOS
-    setupIOSUnlock(scene) {
-        const unlockAudio = () => {
-            if (this.iosUnlocked) return;
-
-            // Получаем аудио контекст из Phaser Sound Manager
-            const audioContext = scene.sound.context;
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume().then(() => {
-                    console.log('iOS Audio unlocked');
-                });
-            }
-
-            // Пробуем воспроизвести короткий звук для разблокировки
-            try {
-                const tempSound = scene.sound.get('bounce');
-                if (tempSound) {
-                    tempSound.play({ volume: 0.01, mute: true });
-                    setTimeout(() => tempSound.stop(), 10);
-                }
-            } catch (e) {
-                // Игнорируем ошибки при первой разблокировке
-            }
-
-            this.iosUnlocked = true;
-        };
-
-        // Слушаем первое взаимодействие пользователя
-        document.addEventListener('touchstart', unlockAudio, { passive: true });
-        document.addEventListener('click', unlockAudio, { once: false });
-        document.addEventListener('pointerdown', unlockAudio, { passive: true });
-
-        // Также пробуем разблокировать при любом взаимодействии с игрой
-        scene.input.on('pointerdown', unlockAudio);
-        scene.input.keyboard?.on('keydown', unlockAudio);
-    },
-
-    // Принудительная разблокировка (вызывать при первом клике в игре)
-    forceUnlock(scene) {
-        if (!this.isIOSDevice || this.iosUnlocked) return;
-
-        const audioContext = scene.sound.context;
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-        this.iosUnlocked = true;
-    },
-
-    // Проверка на iOS устройство
-    isIOS() {
-        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     },
 
     // Обновить громкость всех звуков

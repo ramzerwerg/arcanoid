@@ -29,9 +29,6 @@ const config = {
     width: GAME_CONFIG.width,
     height: GAME_CONFIG.height,
     backgroundColor: GAME_CONFIG.backgroundColor,
-    // audio: {
-	// 	disableWebAudio: true
-	// },
     fps: {
         target: 60,
         forceSetTime: true

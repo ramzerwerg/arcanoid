@@ -122,11 +122,6 @@ class Game extends Phaser.Scene {
 
         // Запуск мяча по клику/тапу
         this.input.on('pointerdown', () => {
-            // Разблокируем аудио на iOS при первом клике
-            if (AudioManager.isIOSDevice && !AudioManager.iosUnlocked) {
-                AudioManager.forceUnlock(this);
-            }
-
             if (!this.ball?.isLaunched) {
                 this.ball?.launch();
                 this.launchText?.destroy();
