@@ -33,7 +33,6 @@ class Preload extends Phaser.Scene {
         // Загрузка всех ассетов
         this.load.setPath('assets/images/');
         this.load.image('paddle', 'paddle.png');
-        this.load.image('paddle_2', 'paddle_2.png');
         this.load.image('ball', 'ball.png');
         this.load.image('brick1', 'brick1.png');
         this.load.image('brick2', 'brick2.png');
@@ -45,7 +44,6 @@ class Preload extends Phaser.Scene {
         this.load.image('bonus_expand', 'bonus_expand.png');
         this.load.image('bonus_ball', 'bonus_ball.png');
         this.load.image('bonus_speed', 'bonus_speed.png');
-        this.load.image('start_btn', 'start_btn.png');
         this.load.image('menu_bar', 'menu_bar.png');
         this.load.image('btn', 'btn.png');
         this.load.image('pause', 'pause.png');
