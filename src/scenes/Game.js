@@ -94,6 +94,7 @@ class Game extends Phaser.Scene {
     _setupInput() {
         this.cursors = this.input.keyboard?.createCursorKeys();
 
+        // Запуск мяча по клику
         this.input.on('pointerdown', () => {
             if (AudioManager.isIOSDevice && !AudioManager.iosUnlocked) {
                 AudioManager.forceUnlock(this);
@@ -101,6 +102,16 @@ class Game extends Phaser.Scene {
             if (!this.ball?.isLaunched) {
                 this.ball?.launch();
                 this.launchText?.destroy();
+            }
+        });
+
+        // Запуск мяча по клавишам (пробел, enter, стрелка вверх)
+        this.input.keyboard?.on('keydown', (event) => {
+            if (event.code === 'Space' || event.code === 'Enter' || event.code === 'ArrowUp') {
+                if (!this.ball?.isLaunched) {
+                    this.ball?.launch();
+                    this.launchText?.destroy();
+                }
             }
         });
     }
