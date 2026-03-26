@@ -57,10 +57,10 @@ class Ball {
         }
 
         // Проверка падения мяча
-        if (this.isLaunched && !this.isFalling && this.y > this.scene.game.config.height - 30) {
+        if (this.isLaunched && !this.isFalling && this.y > this.scene.game.config.height - 100) {
             // Помечаем как падающий, чтобы обработка не сработала повторно
-            this.isFalling = true;
-            this.isLaunched = false;
+            // this.isFalling = true;
+            // this.isLaunched = false;
             this.body.setVelocity(0, 0);
             
             // Проверяем, что мяч ещё существует в сцене

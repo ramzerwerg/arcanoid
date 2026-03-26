@@ -13,12 +13,12 @@ class Menu extends Phaser.Scene {
         // Заголовок
         let logo = this.add.image(width / 2, height / 3, 'logo').setOrigin(0.5, 0.5);
         logo.setAlpha(0);
-        logo.setScale(0.5);
+        logo.setScale(0.8);
 
         // Кнопка старта - запускает первый не пройденный уровень
         const startButton = this.createBrickButton(
             width / 2,
-            height / 2,
+            height / 2.2,
             'НАЧАТЬ ИГРУ',
             () => {
                 // Запускаем первый не пройденный уровень (maxLevel - это следующий для прохождения)
@@ -28,7 +28,6 @@ class Menu extends Phaser.Scene {
         );
 
         startButton.setAlpha(0);
-        startButton.setScale(1.4);
 
         // Кнопка выбора уровня
         const levelSelectButton = this.createBrickButton(
@@ -40,7 +39,7 @@ class Menu extends Phaser.Scene {
 
         // Кнопки настроек (звук и музыка)
         const settingsY = height / 2 + 190;
-        const settingsGap = 220;
+        const settingsGap = 290;
         const settingsX = width / 2 - settingsGap / 2;
 
         // Кнопка звука
@@ -90,15 +89,15 @@ class Menu extends Phaser.Scene {
         this.tweens.add({
             targets: startButton,
             alpha: 1,
-            scale: 1.5,
+            scale: 1.3,
             duration: 800,
             ease: 'Back.out',
             delay: 200,
             onComplete: () => {
                 this.tweens.add({
                     targets: startButton,
-                    scaleX: 1.7,
-                    scaleY: 1.7,
+                    scaleX: 1.5,
+                    scaleY: 1.5,
                     duration: 800,
                     yoyo: true,
                     repeat: -1
@@ -133,7 +132,7 @@ class Menu extends Phaser.Scene {
     // Создать кнопку с текстом внутри brick1
     createBrickButton(x, y, text, callback) {
         const padding = 25;
-        const fontSize = 16;
+        const fontSize = 25;
         
         // Создаём временный текст для измерения
         const tempText = this.add.text(0, 0, text, {

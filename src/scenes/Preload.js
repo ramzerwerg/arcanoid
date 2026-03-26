@@ -48,6 +48,7 @@ class Preload extends Phaser.Scene {
         this.load.image('start_btn', 'start_btn.png');
         this.load.image('menu_bar', 'menu_bar.png');
         this.load.image('btn', 'btn.png');
+        this.load.image('pause', 'pause.png');
         
         this.load.setPath('assets/audio/');
         this.load.audio('hit', 'hit.mp3');

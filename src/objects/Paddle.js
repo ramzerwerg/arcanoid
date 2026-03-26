@@ -33,18 +33,30 @@ class Paddle {
 
     expand() {
         const targetScale = 0.7;
-        
+        const expandedWidth = this.originalWidth * targetScale;
+
         // Анимация увеличения
         this.scene.tweens.add({
             targets: this.sprite,
             scaleX: targetScale,
             duration: 100,
             ease: 'Power2.out',
+            onUpdate: () => {
+                // Обновляем физику во время анимации
+                const currentWidth = this.originalWidth * this.sprite.scaleX;
+                this.body.setSize(currentWidth, this.originalHeight, true);
+                // Синхронизируем позицию тела с позицией спрайта
+                this.body.x = this.sprite.x;
+            },
             onComplete: () => {
                 this.sprite.setTexture('paddle_2');
+                // Финальное обновление физики
+                this.body.setSize(expandedWidth, this.originalHeight, true);
+                this.body.x = this.sprite.x;
+                this.currentWidth = expandedWidth;
             }
         });
-        
+
         // Возврат через 10 секунд
         this.scene.time.delayedCall(10000, () => {
             this.scene.tweens.add({
@@ -52,8 +64,18 @@ class Paddle {
                 scaleX: 0.5,
                 duration: 100,
                 ease: 'Power2.out',
+                onUpdate: () => {
+                    // Обновляем физику во время анимации
+                    const currentWidth = this.originalWidth * this.sprite.scaleX;
+                    this.body.setSize(currentWidth, this.originalHeight, true);
+                    this.body.x = this.sprite.x;
+                },
                 onComplete: () => {
                     this.sprite.setTexture('paddle');
+                    // Финальное обновление физики
+                    this.body.setSize(this.originalWidth, this.originalHeight, true);
+                    this.body.x = this.sprite.x;
+                    this.currentWidth = this.originalWidth;
                 }
             });
         });
@@ -62,7 +84,9 @@ class Paddle {
     update() {
         const gameWidth = this.scene.game.config.width;
         const borderWidth = this.scene.borderWidth || 20;
-        const halfWidth = (this.originalWidth * this.sprite.scaleX) / 2;
+        // Используем текущую ширину платформы (с учётом масштабирования)
+        const currentWidth = this.originalWidth * this.sprite.scaleX;
+        const halfWidth = currentWidth / 2;
 
         // Клавиатура
         if (this.scene.cursors?.left?.isDown) {
@@ -84,10 +108,17 @@ class Paddle {
         }
 
         // Ограничиваем позицию платформы границами (даже для клавиатуры)
-        this.x = Phaser.Math.Clamp(
+        // Используем текущую ширину для правильного ограничения
+        const newX = Phaser.Math.Clamp(
             this.x,
             borderWidth + halfWidth,
             gameWidth - borderWidth - halfWidth
         );
+        
+        // Если позиция изменилась - применяем и обновляем физику
+        if (this.x !== newX) {
+            this.x = newX;
+            this.body.x = newX;
+        }
     }
 }
