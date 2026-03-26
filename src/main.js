@@ -29,6 +29,9 @@ const config = {
     width: GAME_CONFIG.width,
     height: GAME_CONFIG.height,
     backgroundColor: GAME_CONFIG.backgroundColor,
+    // audio: {
+	// 	disableWebAudio: true
+	// },
     fps: {
         target: 60,
         forceSetTime: true
@@ -45,7 +48,7 @@ const config = {
             fps: 60
         }
     },
-    scene: [Boot, Preload, Menu, Game, Pause, GameOver]
+    scene: [Boot, Preload, Menu, LevelSelect, Game, Pause, GameOver]
 };
 
 const game = new Phaser.Game(config);

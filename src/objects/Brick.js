@@ -95,7 +95,7 @@ class Brick {
                 
                 // Добавляем очки
                 this.scene.score += brick.points;
-                this.scene.scoreText.setText(`Счет: ${this.scene.score}`);
+                this.scene.scoreText.setText(`Счет:${this.scene.score}`);
                 
                 // Показываем всплывающий текст
                 this.scene._showFloatingText(brickSprite.x, brickSprite.y, brick.points.toString(), '#ff6b6b');

@@ -1,9 +1,6 @@
 class Pause extends Phaser.Scene {
     constructor() {
         super('Pause');
-        this.soundEnabled = true;
-        this.musicEnabled = true;
-        this.masterVolume = 1;
     }
 
     init(data) {
@@ -14,7 +11,7 @@ class Pause extends Phaser.Scene {
 
     create() {
         const { width, height } = this.game.config;
-        
+
         // === 1. Затемнение фона (оверлей) ===
         this.overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7)
             .setOrigin(0)
@@ -23,17 +20,17 @@ class Pause extends Phaser.Scene {
                 // Клик по затемнению = продолжить (опционально)
                 // this.resumeGame();
             });
-        
+
         // === 2. Контейнер для меню (по центру) ===
         const menuWidth = 400;
         const menuHeight = 320;
         const menuX = width / 2;
         const menuY = height / 2;
-        
+
         this.menuBg = this.add.rectangle(menuX, menuY, menuWidth, menuHeight, 0xfdffff)
             .setOrigin(0.5)
             .setStrokeStyle(10, 0x777777);
-        
+
         // Заголовок
         this.add.text(menuX, menuY - 120, 'ПАУЗА', {
             fontSize: '40px',
@@ -41,7 +38,7 @@ class Pause extends Phaser.Scene {
             color: '#414141',
             fontStyle: 'bold'
         }).setOrigin(0.5);
-        
+
         // === 3. Кнопки меню ===
         const buttonStyle = {
             fontSize: '24px',
@@ -51,33 +48,31 @@ class Pause extends Phaser.Scene {
             padding: { x: 30, y: 15 },
             margin: { x:10, y: 15}
         };
-        
+
         // Кнопка "Продолжить"
         this.btnResume = this.add.text(menuX, menuY - 40, '▶ Продолжить', buttonStyle)
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnResume.setStyle({ backgroundColor: '#fdffff' }))
+            .on('pointerover', () => this.btnResume.setStyle({ backgroundColor: '#e0e0e0' }))
             .on('pointerout', () => this.btnResume.setStyle({ backgroundColor: '#fdffff' }))
             .on('pointerdown', () => this.resumeGame());
-        
+
         // Кнопка "Звуки: Вкл/Выкл"
-        this.updateSoundButtonText();
-        this.btnSound = this.add.text(menuX, menuY + 10, this.soundButtonText, buttonStyle)
+        this.btnSound = this.add.text(menuX, menuY + 10, this.getSFXButtonText(), buttonStyle)
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnSound.setStyle({ backgroundColor: '#fdffff' }))
+            .on('pointerover', () => this.btnSound.setStyle({ backgroundColor: '#e0e0e0' }))
             .on('pointerout', () => this.btnSound.setStyle({ backgroundColor: '#fdffff' }))
             .on('pointerdown', () => this.toggleSound());
-        
+
         // Кнопка "Музыка: Вкл/Выкл"
-        this.updateMusicButtonText();
-        this.btnMusic = this.add.text(menuX, menuY + 60, this.musicButtonText, buttonStyle)
+        this.btnMusic = this.add.text(menuX, menuY + 60, this.getMusicButtonText(), buttonStyle)
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnMusic.setStyle({ backgroundColor: '#fdffff' }))
+            .on('pointerover', () => this.btnMusic.setStyle({ backgroundColor: '#e0e0e0' }))
             .on('pointerout', () => this.btnMusic.setStyle({ backgroundColor: '#fdffff' }))
             .on('pointerdown', () => this.toggleMusic());
-        
+
         // Кнопка "Выйти в меню"
         this.btnExit = this.add.text(menuX, menuY + 110, 'Выйти в меню', {
             ...buttonStyle,
@@ -85,27 +80,16 @@ class Pause extends Phaser.Scene {
         })
             .setOrigin(0.5)
             .setInteractive({ useHandCursor: true })
-            .on('pointerover', () => this.btnExit.setStyle({ backgroundColor: '#fdffff' }))
+            .on('pointerover', () => this.btnExit.setStyle({ backgroundColor: '#e0e0e0' }))
             .on('pointerout', () => this.btnExit.setStyle({ backgroundColor: '#fdffff' }))
             .on('pointerdown', () => this.exitToMenu());
-        
+
         // === 4. Обработка клавиши Esc ===
         this.escKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
         this.escKey?.on('up', () => this.resumeGame());
-        
+
         // === 5. Останавливаем предыдущую сцену ===
         this.scene.pause(this.previousScene);
-        
-        // === 6. Сохраняем состояние звуков из предыдущей сцены (если есть) ===
-        const prevScene = this.scene.get(this.previousScene);
-        if (prevScene?.soundEnabled !== undefined) {
-            this.soundEnabled = prevScene.soundEnabled;
-        }
-        if (prevScene?.musicEnabled !== undefined) {
-            this.musicEnabled = prevScene.musicEnabled;
-        }
-        this.updateSoundButtonText();
-        this.updateMusicButtonText();
 
         // Анимация появления меню
         this.menuBg.setScale(0);
@@ -119,9 +103,9 @@ class Pause extends Phaser.Scene {
 
         // Кнопки появляются с задержкой
         [
-            this.btnResume, 
-            this.btnSound, 
-            this.btnMusic, 
+            this.btnResume,
+            this.btnSound,
+            this.btnMusic,
             this.btnExit
         ].forEach((btn, i) => {
             btn.setAlpha(0);
@@ -133,76 +117,26 @@ class Pause extends Phaser.Scene {
             });
         });
     }
-    
-    updateSoundButtonText() {
-        this.soundButtonText = `Звуки: ${this.soundEnabled ? 'Вкл' : 'Выкл'}`;
-        if (this.btnSound) {
-            this.btnSound.setText(this.soundButtonText);
-        }
+
+    getSFXButtonText() {
+        return `Звуки:${AudioManager.isSFXEnabled() ? 'Вкл' : 'Выкл'}`;
     }
-    
-    updateMusicButtonText() {
-        this.musicButtonText = `Музыка: ${this.musicEnabled ? 'Вкл' : 'Выкл'}`;
-        if (this.btnMusic) {
-            this.btnMusic.setText(this.musicButtonText);
-        }
+
+    getMusicButtonText() {
+        return `Музыка:${AudioManager.isMusicEnabled() ? 'Вкл' : 'Выкл'}`;
     }
-    
+
     toggleSound() {
-        this.soundEnabled = !this.soundEnabled;
-        this.updateSoundButtonText();
-
-        // Глушим/включаем ТОЛЬКО звуковые эффекты, не трогая музыку
-        // Музыка управляется отдельно через game.backgroundMusic и toggleMusic()
-        const prevScene = this.scene.get(this.previousScene);
-        if (prevScene?.sound) {
-            prevScene.sound.setMute(!this.soundEnabled);
-        }
-
-        // Важно: если музыка была включена, убеждаемся, что она играет
-        if (this.musicEnabled && game.backgroundMusic) {
-            if (game.backgroundMusic.paused) {
-                game.backgroundMusic.resume();
-            }
-        }
-
-        // Сохраняем в предыдущую сцену
-        if (prevScene) {
-            prevScene.soundEnabled = this.soundEnabled;
-        }
+        const isEnabled = AudioManager.toggleSFX();
+        this.btnSound.setText(this.getSFXButtonText());
     }
-    
+
     toggleMusic() {
-        this.musicEnabled = !this.musicEnabled;
-        this.updateMusicButtonText();
-        
-        // Управление фоновой музыкой
-        if (this.musicEnabled) {
-            // Если есть фоновая музыка — включаем
-            if (this.game.backgroundMusic?.isPaused) {
-                this.game.backgroundMusic?.resume();
-            }
-        } else {
-            this.game.backgroundMusic?.pause();
-        }
-        
-        // Сохраняем в предыдущую сцену
-        const prevScene = this.scene.get(this.previousScene);
-        if (prevScene) {
-            prevScene.musicEnabled = this.musicEnabled;
-        }
-
-        updateMusicState(this);
+        const isEnabled = AudioManager.toggleMusic();
+        this.btnMusic.setText(this.getMusicButtonText());
     }
-    
+
     resumeGame() {
-        // Сохраняем настройки в предыдущую сцену
-        const prevScene = this.scene.get(this.previousScene);
-        if (prevScene) {
-            prevScene.soundEnabled = this.soundEnabled;
-            prevScene.musicEnabled = this.musicEnabled;
-        }
-        
         // Удаляем оверлей и меню для чистоты
         this.overlay?.destroy();
         this.menuBg?.destroy();
@@ -210,17 +144,17 @@ class Pause extends Phaser.Scene {
         this.btnSound?.destroy();
         this.btnMusic?.destroy();
         this.btnExit?.destroy();
-        
+
         // Возвращаемся к игре
         this.scene.resume(this.previousScene);
         this.scene.stop();
     }
-    
+
     exitToMenu() {
         // Очищаем паузу
         this.overlay?.destroy();
         this.menuBg?.destroy();
-        
+
         // Останавливаем предыдущую сцену (игра) и переходим в меню
         this.scene.stop(this.previousScene);
         this.scene.start('Menu');
