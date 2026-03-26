@@ -32,7 +32,7 @@ class Paddle {
     get height() { return this.sprite.displayHeight; }
 
     expand() {
-        const targetScale = 0.7;
+        const targetScale = 1.3;
         const expandedWidth = this.originalWidth * targetScale;
 
         // Анимация увеличения
@@ -53,6 +53,7 @@ class Paddle {
                 // Финальное обновление физики
                 this.body.setSize(expandedWidth, this.originalHeight, true);
                 this.body.x = this.sprite.x;
+                this.sprite.setDisplaySize(expandedWidth, this.originalHeight)
                 this.currentWidth = expandedWidth;
             }
         });
@@ -61,7 +62,7 @@ class Paddle {
         this.scene.time.delayedCall(10000, () => {
             this.scene.tweens.add({
                 targets: this.sprite,
-                scaleX: 0.5,
+                scaleX: 1,
                 duration: 100,
                 ease: 'Power2.out',
                 onUpdate: () => {
@@ -74,6 +75,7 @@ class Paddle {
                     this.sprite.setTexture('paddle');
                     // Финальное обновление физики
                     this.body.setSize(this.originalWidth, this.originalHeight, true);
+                    this.sprite.setDisplaySize(this.originalWidth, this.originalHeight)
                     this.body.x = this.sprite.x;
                     this.currentWidth = this.originalWidth;
                 }

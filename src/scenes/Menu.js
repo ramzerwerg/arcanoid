@@ -279,11 +279,19 @@ class Menu extends Phaser.Scene {
     }
 
     toggleSound() {
+        // Разблокируем аудио на iOS при первом клике
+        if (AudioManager.isIOSDevice && !AudioManager.iosUnlocked) {
+            AudioManager.forceUnlock(this);
+        }
         const isEnabled = AudioManager.toggleSFX();
         this.updateSoundButton(isEnabled);
     }
 
     toggleMusic() {
+        // Разблокируем аудио на iOS при первом клике
+        if (AudioManager.isIOSDevice && !AudioManager.iosUnlocked) {
+            AudioManager.forceUnlock(this);
+        }
         const isEnabled = AudioManager.toggleMusic();
         this.updateMusicButton(isEnabled);
     }

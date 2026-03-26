@@ -30,19 +30,19 @@ class GameOver extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Финальный счет
-        this.add.text(width / 2, height / 2.2, `Счет:${this.score}`, {
-            fontSize: '20px',
+        this.add.text(width / 2, height / 2.15, `Счет:${this.score}`, {
+            fontSize: '25px',
             fontFamily: '"Press Start 2P", Arial',
             color: '#E5E5E5',
             stroke: '#414141',
             strokeThickness: 6
         }).setOrigin(0.5);
 
-        // Кнопка "ПОПРОБОВАТЬ СНОВА"
+        // Кнопка "НАЧАТЬ ЗАНОВО"
         const restartButton = this.createBrickButton(
             width / 2,
             height / 1.8,
-            'ПОПРОБОВАТЬ СНОВА',
+            'НАЧАТЬ ЗАНОВО',
             () => {
                 // Запускаем тот же уровень с начала
                 this.scene.start('Game', { level: this.level, score: 0, lives: 3 });
@@ -80,8 +80,8 @@ class GameOver extends Phaser.Scene {
 
     // Создать кнопку с текстом внутри brick1
     createBrickButton(x, y, text, callback) {
-        const padding = 30;
-        const fontSize = 16;
+        const padding = 25;
+        const fontSize = 25;
 
         // Создаём временный текст для измерения
         const tempText = this.add.text(0, 0, text, {
@@ -103,7 +103,7 @@ class GameOver extends Phaser.Scene {
         const container = this.add.container(x, y);
 
         // Фон из brick1 (растягиваем)
-        const bg = this.add.image(0, 0, 'brick1');
+        const bg = this.add.image(0, 0, 'btn');
         bg.setDisplaySize(buttonWidth, buttonHeight);
         bg.setOrigin(0.5);
 

@@ -7,6 +7,7 @@ const AudioManager = {
     sfxEnabled: true,
     musicEnabled: true,
     iosUnlocked: false,
+    isIOSDevice: false,
 
     // Инициализация (вызывается один раз при загрузке)
     init(scene) {
@@ -14,54 +15,76 @@ const AudioManager = {
         this.sfxEnabled = GameStorage.getSoundEnabled();
         this.musicEnabled = GameStorage.getMusicEnabled();
 
+        // Проверяем iOS
+        this.isIOSDevice = this.isIOS();
+
         // Настраиваем громкость для всех звуков
         this.updateAllVolumes();
 
         // Разблокировка аудио на iOS
-        this.unlockIOS(scene);
+        if (this.isIOSDevice) {
+            this.setupIOSUnlock(scene);
+        }
     },
 
-    // Разблокировка аудио на iOS (требует взаимодействия пользователя)
-    unlockIOS(scene) {
-        if (!this.isIOS()) return;
-
+    // Настройка разблокировки аудио на iOS
+    setupIOSUnlock(scene) {
         const unlockAudio = () => {
             if (this.iosUnlocked) return;
 
-            this.sound.unlock();
-            // Создаём короткий тишина-звук для разблокировки Web Audio API
+            // Получаем аудио контекст из Phaser Sound Manager
             const audioContext = scene.sound.context;
             if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume();
+                audioContext.resume().then(() => {
+                    console.log('iOS Audio unlocked');
+                });
             }
 
-            // Воспроизводим и сразу останавливаем короткий звук для разблокировки
-            const tempSound = scene.sound.add('bounce', { volume: 0 });
-            tempSound.play();
-            tempSound.stop();
+            // Пробуем воспроизвести короткий звук для разблокировки
+            try {
+                const tempSound = scene.sound.get('bounce');
+                if (tempSound) {
+                    tempSound.play({ volume: 0.01, mute: true });
+                    setTimeout(() => tempSound.stop(), 10);
+                }
+            } catch (e) {
+                // Игнорируем ошибки при первой разблокировке
+            }
 
             this.iosUnlocked = true;
-
-            // Удаляем слушатели после успешной разблокировки
-            document.removeEventListener('touchstart', unlockAudio);
-            document.removeEventListener('click', unlockAudio);
         };
 
         // Слушаем первое взаимодействие пользователя
-        document.addEventListener('touchstart', unlockAudio, { once: false });
+        document.addEventListener('touchstart', unlockAudio, { passive: true });
         document.addEventListener('click', unlockAudio, { once: false });
+        document.addEventListener('pointerdown', unlockAudio, { passive: true });
+
+        // Также пробуем разблокировать при любом взаимодействии с игрой
+        scene.input.on('pointerdown', unlockAudio);
+        scene.input.keyboard?.on('keydown', unlockAudio);
+    },
+
+    // Принудительная разблокировка (вызывать при первом клике в игре)
+    forceUnlock(scene) {
+        if (!this.isIOSDevice || this.iosUnlocked) return;
+
+        const audioContext = scene.sound.context;
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        this.iosUnlocked = true;
     },
 
     // Проверка на iOS устройство
     isIOS() {
         return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     },
-    
+
     // Обновить громкость всех звуков
     updateAllVolumes() {
         const scene = this.getAnyScene();
         if (!scene?.sound) return;
-        
+
         // Обновляем громкость для всех SFX
         this.SFX_KEYS.forEach(key => {
             const sound = scene.sound.get(key);
@@ -69,14 +92,14 @@ const AudioManager = {
                 sound.setMute(!this.sfxEnabled);
             }
         });
-        
+
         // Обновляем музыку
         const bgMusic = scene.sound.get('backgroundMusic');
         if (bgMusic) {
             bgMusic.setMute(!this.musicEnabled);
         }
     },
-    
+
     // Получить любую активную сцену для доступа к sound manager
     getAnyScene() {
         if (typeof game !== 'undefined' && game.scene) {
@@ -85,7 +108,7 @@ const AudioManager = {
         }
         return null;
     },
-    
+
     // Переключить звуки (SFX)
     toggleSFX() {
         this.sfxEnabled = !this.sfxEnabled;
@@ -93,7 +116,7 @@ const AudioManager = {
         this.updateAllVolumes();
         return this.sfxEnabled;
     },
-    
+
     // Переключить музыку
     toggleMusic() {
         this.musicEnabled = !this.musicEnabled;
@@ -113,13 +136,6 @@ const AudioManager = {
                         // Если музыка вообще не играет - запускаем
                         const scene = this.getAnyScene();
                         if (scene) {
-                            // На iOS нужно убедиться, что аудио контекст активен
-                            if (this.isIOS()) {
-                                const audioContext = scene.sound.context;
-                                if (audioContext && audioContext.state === 'suspended') {
-                                    audioContext.resume();
-                                }
-                            }
                             scene.sound.play('backgroundMusic', { loop: true, volume: 1 });
                         }
                     }
@@ -134,12 +150,12 @@ const AudioManager = {
 
         return this.musicEnabled;
     },
-    
+
     // Получить состояние SFX
     isSFXEnabled() {
         return this.sfxEnabled;
     },
-    
+
     // Получить состояние музыки
     isMusicEnabled() {
         return this.musicEnabled;

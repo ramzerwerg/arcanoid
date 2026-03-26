@@ -58,6 +58,7 @@ class Bonus {
 
         const newBall = new Ball(this.scene, activeBall.x, activeBall.y);
         newBall.isLaunched = true;
+        newBall._inDeathZone = false; // Инициализируем флаг смерти
 
         newBall.body.setVelocity(
             activeBall.body.velocity.x * (Math.random() > 0.5 ? 1 : -1),
@@ -85,6 +86,9 @@ class Bonus {
         });
         
         newBall.sprite.body.onWorldBounds = true;
+
+        // Добавляем коллизию с зоной смерти
+        this.scene.physics.add.overlap(newBall.sprite, this.scene.deathZone, this.scene._onBallInDeathZone, null, this.scene);
     }
 
     _activateExpand() {

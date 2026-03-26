@@ -55,19 +55,6 @@ class Ball {
             this.y = this.scene.paddle.y - 40;
             return;
         }
-
-        // Проверка падения мяча
-        if (this.isLaunched && !this.isFalling && this.y > this.scene.game.config.height - 100) {
-            // Помечаем как падающий, чтобы обработка не сработала повторно
-            // this.isFalling = true;
-            // this.isLaunched = false;
-            this.body.setVelocity(0, 0);
-            
-            // Проверяем, что мяч ещё существует в сцене
-            if (this.sprite && this.sprite.active && this.sprite.scene) {
-                this.scene.ballLost(this);
-            }
-        }
     }
 
     reset(x, y) {
